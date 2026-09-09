@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../config/api_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/attendance_provider.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -79,6 +80,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.logout_rounded),
           onPressed: () {
             authProvider.logout();
+            Provider.of<AttendanceProvider>(context, listen: false).reset();
             Navigator.of(context).pushReplacementNamed('/login');
           },
         ),

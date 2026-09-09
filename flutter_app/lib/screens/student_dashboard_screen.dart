@@ -116,9 +116,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           _isLoading = false;
         });
 
-        if (data['success'] == true && data['today_attendance'] != null) {
+        if (data['success'] == true) {
+          final attModel = data['today_attendance'] != null
+              ? AttendanceModel.fromJson(data['today_attendance'])
+              : null;
           Provider.of<AttendanceProvider>(context, listen: false)
-              .setTodayAttendance(AttendanceModel.fromJson(data['today_attendance']));
+              .setTodayAttendance(attModel);
         }
 
         if (data['success'] == true && data['notifications'] != null) {

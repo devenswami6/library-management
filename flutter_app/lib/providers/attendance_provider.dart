@@ -18,6 +18,13 @@ class AttendanceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void reset() {
+    _todayAttendance = null;
+    _isLoading = false;
+    _message = null;
+    notifyListeners();
+  }
+
   // Helper method to fetch GPS location with permissions
   Future<Position?> determinePosition() async {
     bool serviceEnabled;

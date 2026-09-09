@@ -1,3 +1,12 @@
+ext {
+    flutter = [
+        compileSdkVersion: 34,
+        minSdkVersion: 21,
+        targetSdkVersion: 34,
+        ndkVersion: "25.1.8937393"
+    ]
+}
+
 allprojects {
     repositories {
         google()
@@ -8,14 +17,6 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-
-subprojects {
-    plugins.withType(com.android.build.gradle.BasePlugin) {
-        project.android {
-            compileSdkVersion 34
-        }
-    }
 }
 
 subprojects {
