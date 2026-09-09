@@ -6,11 +6,14 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.location.Location
+import android.location.LocationManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -22,6 +25,7 @@ class LibraryNotificationService : Service() {
     private val executor = Executors.newSingleThreadExecutor()
     private val shownNotifIds = mutableSetOf<Int>()
     private var isRunning = false
+    private var lastAutoCheckoutTime: Long = 0
 
     companion object {
         const val CHANNEL_ID_FOREGROUND = "library_fg_service_channel"
@@ -66,7 +70,7 @@ class LibraryNotificationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID_FOREGROUND)
             .setContentTitle("Self-Study Library")
-            .setContentText("Listening for notices...")
+            .setContentText("Active Attendance & Geofence Guard")
             .setSmallIcon(getAppIconRes())
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
@@ -101,23 +105,23 @@ class LibraryNotificationService : Service() {
     private fun startPollingLoop() {
         handler.post(object : Runnable {
             override fun run() {
-                checkNotificationsInBackground()
-                handler.postDelayed(this, 5000) // Check every 5 seconds for instant delivery
+                checkNotificationsAndGeofenceInBackground()
+                handler.postDelayed(this, 8000) // Check every 8 seconds
             }
         })
     }
 
-    private fun checkNotificationsInBackground() {
+    private fun checkNotificationsAndGeofenceInBackground() {
         executor.execute {
             try {
                 loadShownIdsFromPrefs()
                 val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val userId = prefs.getInt(KEY_USER_ID, 0)
-                val baseUrl = prefs.getString(KEY_BASE_URL, "http://10.84.90.50:8000") ?: "http://10.84.90.50:8000"
+                val baseUrl = prefs.getString(KEY_BASE_URL, "https://library-management-hmwx.onrender.com") ?: "https://library-management-hmwx.onrender.com"
 
                 if (userId <= 0) return@execute
 
-                val urlString = "$baseUrl/api/json_student_actions.php?action=get_dashboard_data&user_id=$userId"
+                val urlString = "$baseUrl/api/json_student_actions.php?action=get_dashboard&user_id=$userId"
                 val url = URL(urlString)
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
@@ -128,6 +132,7 @@ class LibraryNotificationService : Service() {
                     val responseText = connection.inputStream.bufferedReader().use { it.readText() }
                     val json = JSONObject(responseText)
                     if (json.optBoolean("success")) {
+                        // 1. Process Announcements / Admin Notices
                         val notifs = json.optJSONArray("notifications")
                         if (notifs != null) {
                             for (i in 0 until notifs.length()) {
@@ -149,12 +154,91 @@ class LibraryNotificationService : Service() {
                                 }
                             }
                         }
+
+                        // 2. Check Background Geofence & Anti-Cheat GPS OFF
+                        val todayAtt = json.optJSONObject("today_attendance")
+                        val checkInTime = todayAtt?.optString("check_in_time") ?: ""
+                        val checkOutTime = todayAtt?.optString("check_out_time") ?: ""
+                        val isCheckedIn = checkInTime.isNotBlank() && (checkOutTime.isBlank() || checkOutTime == "null")
+
+                        if (isCheckedIn && (System.currentTimeMillis() - lastAutoCheckoutTime > 30000)) {
+                            checkBackgroundGeofenceStatus(baseUrl, userId)
+                        }
                     }
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    private fun checkBackgroundGeofenceStatus(baseUrl: String, userId: Int) {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                           locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+        if (!isGpsEnabled) {
+            // Anti-Cheat: GPS is OFF while student is checked in!
+            lastAutoCheckoutTime = System.currentTimeMillis()
+            performAutoCheckout(baseUrl, userId, "GPS Location was turned OFF on your phone while checked-in.")
+            return
+        }
+
+        // Fetch location and check 50m radius
+        val location = getLastKnownLocation(locationManager)
+        if (location != null) {
+            val targetLat = 28.0087395
+            val targetLng = 73.2924508
+            val results = FloatArray(1)
+            Location.distanceBetween(location.latitude, location.longitude, targetLat, targetLng, results)
+            val distanceMeters = results[0]
+
+            if (distanceMeters > 50.0f) {
+                lastAutoCheckoutTime = System.currentTimeMillis()
+                val distStr = if (distanceMeters > 1000) String.format("%.2f km", distanceMeters / 1000) else String.format("%.1f meters", distanceMeters)
+                performAutoCheckout(baseUrl, userId, "You moved $distStr away from Keshav Library (50m limit).")
+            }
+        }
+    }
+
+    private fun getLastKnownLocation(locationManager: LocationManager): Location? {
+        try {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+
+                val gpsLoc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                val netLoc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+
+                if (gpsLoc != null && netLoc != null) {
+                    return if (gpsLoc.time > netLoc.time) gpsLoc else netLoc
+                }
+                return gpsLoc ?: netLoc
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
+    private fun performAutoCheckout(baseUrl: String, userId: Int, reasonMessage: String) {
+        try {
+            val timeStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+            val checkOutUrl = URL("$baseUrl/api/json_student_actions.php")
+            val conn = checkOutUrl.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.connectTimeout = 4000
+            conn.readTimeout = 4000
+
+            val postData = "action=checkout&user_id=$userId&device_time=$timeStr&auto_checkout=1"
+            conn.outputStream.write(postData.toByteArray(Charsets.UTF_8))
+            val code = conn.responseCode
+            conn.disconnect()
+
+            showHeadsUpNotification(9876, "Auto Checked-Out 🚪", reasonMessage)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
