@@ -62,6 +62,23 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         return;
       }
 
+      // Anti-Cheat Check: Check if GPS is turned OFF while checked in
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        final success = await attProvider.checkOut(user.id, isAuto: true);
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Auto Checked-Out: GPS Location was turned OFF on your device while checked in.'),
+              backgroundColor: Colors.orangeAccent,
+              duration: Duration(seconds: 6),
+            ),
+          );
+          _loadData();
+        }
+        return;
+      }
+
       try {
         final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
@@ -89,7 +106,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           }
         }
       } catch (e) {
-        print("Geofence auto check error: $e");
+        final success = await attProvider.checkOut(user.id, isAuto: true);
+        if (success && mounted) {
+          _loadData();
+        }
       }
     });
   }
