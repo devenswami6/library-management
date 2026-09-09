@@ -1,0 +1,539 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
+
+class ApiService {
+  static const Duration _timeout = Duration(seconds: 15);
+
+  // Login
+  static Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAuth),
+        body: {'action': 'login', 'email': email, 'password': password},
+      ).timeout(_timeout);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Network timeout or connection busy: $e'};
+    }
+  }
+
+  // Send Login OTP
+  static Future<Map<String, dynamic>> sendLoginOtp(String phoneOrEmail, {String? deviceId}) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAuth),
+        body: {
+          'action': 'send_login_otp',
+          'phone_or_email': phoneOrEmail,
+          'device_id': deviceId ?? '',
+        },
+      ).timeout(_timeout);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Network timeout or connection busy: $e'};
+    }
+  }
+
+  // Verify Login OTP
+  static Future<Map<String, dynamic>> verifyLoginOtp(String phoneOrEmail, String otpCode, {String? deviceId}) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAuth),
+        body: {
+          'action': 'verify_login_otp',
+          'phone_or_email': phoneOrEmail,
+          'otp_code': otpCode,
+          'device_id': deviceId ?? '',
+        },
+      ).timeout(_timeout);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Network timeout or connection busy: $e'};
+    }
+  }
+
+  // Student Register
+  static Future<Map<String, dynamic>> registerStudent({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required int shiftId,
+    String? emergencyContact,
+    String? idProofType,
+    String? idProofNo,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAuth),
+        body: {
+          'action': 'register',
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'password': password,
+          'shift_id': shiftId.toString(),
+          'emergency_contact': emergencyContact ?? '',
+          'id_proof_type': idProofType ?? 'Aadhaar Card',
+          'id_proof_no': idProofNo ?? '',
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  // Get Active Shifts
+  static Future<List<dynamic>> getShifts() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAuth}?action=get_shifts'),
+      );
+      final data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        return data['shifts'];
+      }
+    } catch (e) {
+      print("Error fetching shifts: $e");
+    }
+    return [];
+  }
+
+  // Fetch Seat Matrix Grid
+  static Future<Map<String, dynamic>> getSeatMatrix(int shiftId, int currentUserId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.seatMatrix}?shift_id=$shiftId&user_id=$currentUserId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error loading seat map: $e'};
+    }
+  }
+
+  // Student Dashboard Data
+  static Future<Map<String, dynamic>> getStudentDashboard(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonStudent}?action=get_dashboard&user_id=$userId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error loading dashboard: $e'};
+    }
+  }
+
+  // Student Check-In
+  static Future<Map<String, dynamic>> studentCheckIn(int userId, String deviceTime, {double? lat, double? lng}) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonStudent),
+        body: {
+          'action': 'checkin',
+          'user_id': userId.toString(),
+          'device_time': deviceTime,
+          'latitude': lat?.toString() ?? '0.0',
+          'longitude': lng?.toString() ?? '0.0',
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Check-in failed: $e'};
+    }
+  }
+
+  // Student Check-Out
+  static Future<Map<String, dynamic>> studentCheckOut(int userId, String deviceTime, {double? lat, double? lng, bool autoCheckout = false}) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonStudent),
+        body: {
+          'action': 'checkout',
+          'user_id': userId.toString(),
+          'device_time': deviceTime,
+          'latitude': lat?.toString() ?? '0.0',
+          'longitude': lng?.toString() ?? '0.0',
+          'auto_checkout': autoCheckout ? '1' : '0',
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Check-out failed: $e'};
+    }
+  }
+
+  // Submit Complaint
+  static Future<Map<String, dynamic>> submitComplaint(int userId, String category, String subject, String description) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonStudent),
+        body: {
+          'action': 'submit_complaint',
+          'user_id': userId.toString(),
+          'category': category,
+          'subject': subject,
+          'description': description,
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to submit complaint: $e'};
+    }
+  }
+
+  // Get Student Complaints / Support Tickets List
+  static Future<Map<String, dynamic>> getStudentComplaints(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonStudent}?action=get_complaints&user_id=$userId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load tickets: $e'};
+    }
+  }
+
+  // Admin: Get All Complaints / Support Tickets List
+  static Future<Map<String, dynamic>> getAllComplaints() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_all_complaints'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load complaints: $e'};
+    }
+  }
+
+  // Admin: Update Complaint Ticket Status
+  static Future<Map<String, dynamic>> updateComplaintStatus(int complaintId, String status) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'update_complaint_status',
+          'complaint_id': complaintId.toString(),
+          'status': status,
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to update ticket status: $e'};
+    }
+  }
+
+  // Admin Dashboard Stats
+  static Future<Map<String, dynamic>> getAdminStats() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_dashboard_stats'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error loading stats: $e'};
+    }
+  }
+
+  // Admin Pending Students Request List
+  static Future<Map<String, dynamic>> getPendingStudents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_pending_students'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error loading pending list: $e'};
+    }
+  }
+
+  // Admin Seat Allotment
+  static Future<Map<String, dynamic>> allotSeat(int studentId, int seatId, int shiftId) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'allot_seat',
+          'student_id': studentId.toString(),
+          'seat_id': seatId.toString(),
+          'shift_id': shiftId.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Seat allotment failed: $e'};
+    }
+  }
+
+  // Admin Live Attendance
+  static Future<Map<String, dynamic>> getLiveAttendance() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_live_attendance'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error loading attendance: $e'};
+    }
+  }
+
+  // Admin Attendance Toggle (Check-In or Check-Out for Student)
+  static Future<Map<String, dynamic>> adminAttendanceToggle(int studentId, String toggleType) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'admin_attendance_toggle',
+          'student_id': studentId.toString(),
+          'toggle_type': toggleType,
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Action failed: $e'};
+    }
+  }
+
+  // Send Notification / Broadcast
+  static Future<Map<String, dynamic>> sendNotification(String title, String content, {int? targetUserId}) async {
+    try {
+      final body = {
+        'action': 'send_notification',
+        'title': title,
+        'content': content,
+      };
+      if (targetUserId != null) {
+        body['target_user_id'] = targetUserId.toString();
+      }
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: body,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to send notification: $e'};
+    }
+  }
+
+  // Bulk Create Seats Range (e.g. Row E, 1 to 10 -> E-01 to E-10)
+  static Future<Map<String, dynamic>> bulkCreateSeats(String rowLabel, int startNum, int endNum, {int formatDigits = 2}) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'bulk_create_seats',
+          'row_label': rowLabel,
+          'start_num': startNum.toString(),
+          'end_num': endNum.toString(),
+          'format_digits': formatDigits.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Bulk creation failed: $e'};
+    }
+  }
+
+  // Delete Seat Desk
+  static Future<Map<String, dynamic>> deleteSeat(int seatId) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'delete_seat',
+          'seat_id': seatId.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Delete seat failed: $e'};
+    }
+  }
+
+  // Admin Fee Management: Get All Payments
+  static Future<Map<String, dynamic>> getAdminFeePayments() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_fee_payments'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load fee payments: $e'};
+    }
+  }
+
+  // Admin Fee Management: Record Fee Payment
+  static Future<Map<String, dynamic>> recordFeePayment({
+    required int allocationId,
+    required int userId,
+    required double amount,
+    required String paymentMode,
+    String? monthYear,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'record_fee_payment',
+          'allocation_id': allocationId.toString(),
+          'user_id': userId.toString(),
+          'amount': amount.toString(),
+          'payment_mode': paymentMode,
+          'month_year': monthYear ?? '',
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to record payment: $e'};
+    }
+  }
+
+  // Student Fee History
+  static Future<Map<String, dynamic>> getStudentFeeHistory(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonStudent}?action=get_fee_history&user_id=$userId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load fee history: $e'};
+    }
+  }
+
+  // Student Chat API
+  static Future<Map<String, dynamic>> getStudentChatMessages(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonStudent}?action=get_chat_messages&user_id=$userId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load chat: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> sendStudentChatMessage(int userId, String message) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonStudent),
+        body: {
+          'action': 'send_chat_message',
+          'user_id': userId.toString(),
+          'message': message,
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to send message: $e'};
+    }
+  }
+
+  // Admin Chat API
+  static Future<Map<String, dynamic>> getAdminChatThreads() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_admin_chat_threads'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load chat threads: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getAdminChatMessages(int studentId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_admin_chat_messages&student_id=$studentId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load conversation: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> sendAdminChatMessage(int studentId, String message) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'send_admin_chat_message',
+          'student_id': studentId.toString(),
+          'message': message,
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to send reply: $e'};
+    }
+  }
+
+  // Manage Students API
+  static Future<Map<String, dynamic>> getAllStudents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_all_students'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to fetch student directory: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteStudent(int studentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'delete_student',
+          'student_id': studentId.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to delete student record: $e'};
+    }
+  }
+
+  // Recycle Bin API
+  static Future<Map<String, dynamic>> getRecycleBinStudents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_recycle_bin_students'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to fetch recycle bin: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> restoreStudent(int studentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'restore_student',
+          'student_id': studentId.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to restore student: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> permanentDeleteStudent(int studentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'permanent_delete_student',
+          'student_id': studentId.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to erase student record: $e'};
+    }
+  }
+}
