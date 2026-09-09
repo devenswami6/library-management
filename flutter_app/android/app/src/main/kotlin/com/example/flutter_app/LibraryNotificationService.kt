@@ -106,7 +106,7 @@ class LibraryNotificationService : Service() {
         handler.post(object : Runnable {
             override fun run() {
                 checkNotificationsAndGeofenceInBackground()
-                handler.postDelayed(this, 8000) // Check every 8 seconds
+                handler.postDelayed(this, 30000) // Battery Optimized 30s check interval
             }
         })
     }
