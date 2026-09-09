@@ -11,11 +11,9 @@ subprojects {
 }
 
 subprojects {
-    project.plugins.whenPluginAdded { plugin ->
-        if (plugin.class.name.startsWith("com.android.build.gradle")) {
-            project.android {
-                compileSdkVersion 34
-            }
+    plugins.withType(com.android.build.gradle.BasePlugin) {
+        project.android {
+            compileSdkVersion 34
         }
     }
 }
