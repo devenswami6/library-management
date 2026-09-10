@@ -106,7 +106,7 @@ class LibraryNotificationService : Service() {
         handler.post(object : Runnable {
             override fun run() {
                 checkNotificationsAndGeofenceInBackground()
-                handler.postDelayed(this, 30000) // Battery Optimized 30s check interval
+                handler.postDelayed(this, 10000) // Poll every 10 seconds for instant background notice alerts
             }
         })
     }
@@ -138,18 +138,22 @@ class LibraryNotificationService : Service() {
                             for (i in 0 until notifs.length()) {
                                 val item = notifs.getJSONObject(i)
                                 val id = item.optInt("id", 0)
+                                val notifUserId = item.optInt("user_id", 0)
                                 val rawTitle = item.optString("title", "New Notice")
                                 val rawMsg = item.optString("message", item.optString("content", ""))
                                 val title = if (rawTitle.isNotBlank()) rawTitle else "New Notice"
                                 val body = if (rawMsg.isNotBlank()) rawMsg else title
                                 val isRead = item.optInt("is_read", 0) == 1 || item.optBoolean("is_read", false)
 
-                                if (id > 0 && !isRead) {
+                                // For broadcast (notifUserId == 0), don't require isRead=false from server
+                                if (id > 0 && (!isRead || notifUserId == 0)) {
                                     if (!shownNotifIds.contains(id)) {
                                         shownNotifIds.add(id)
                                         saveShownIdsToPrefs()
                                         showHeadsUpNotification(id, title, body)
-                                        markNotificationAsRead(baseUrl, userId, id)
+                                        if (notifUserId > 0) {
+                                            markNotificationAsRead(baseUrl, userId, id)
+                                        }
                                     }
                                 }
                             }

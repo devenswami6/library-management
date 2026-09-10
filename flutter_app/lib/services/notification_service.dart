@@ -92,13 +92,14 @@ class NotificationService {
 
     for (var n in notifs) {
       final int notifId = n['id'] is int ? n['id'] : int.tryParse(n['id'].toString()) ?? 0;
+      final int notifUserId = n['user_id'] is int ? n['user_id'] : int.tryParse(n['user_id']?.toString() ?? '0') ?? 0;
       final String rawTitle = n['title'] ?? 'New Notice';
       final String rawMsg = n['message'] ?? n['content'] ?? '';
       final String title = rawTitle.isNotEmpty ? rawTitle : 'New Notice';
       final String body = rawMsg.isNotEmpty ? rawMsg : title;
       final bool isRead = n['is_read'] == 1 || n['is_read'] == true;
 
-      if (!isRead && notifId > 0 && !shownIds.contains(notifId)) {
+      if ((!isRead || notifUserId == 0) && notifId > 0 && !shownIds.contains(notifId)) {
         shownIds.add(notifId);
         updated = true;
 

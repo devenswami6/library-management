@@ -131,10 +131,10 @@ try {
     } elseif ($action === 'mark_notification_read') {
         $notif_id = (int)($_POST['notif_id'] ?? ($_GET['notif_id'] ?? 0));
         if ($notif_id > 0) {
-            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");
+            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id > 0");
             $stmt_m->execute([$notif_id]);
         } else {
-            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = 0 OR user_id = ?");
+            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?");
             $stmt_m->execute([$user_id]);
         }
         echo json_encode(['success' => true]);
