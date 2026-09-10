@@ -2,7 +2,6 @@
 // receipt.php - Printable Digital Fee Payment Receipt
 
 require_once __DIR__ . '/config/auth.php';
-require_login();
 
 $receipt_no = trim($_GET['receipt_no'] ?? '');
 
@@ -27,10 +26,12 @@ if (!$receipt) {
     die("Receipt not found.");
 }
 
-// Check authorization (Must be Admin or the owner student)
-$curr = current_user();
-if ($curr['role'] !== 'admin' && $curr['id'] != $receipt['user_id']) {
-    die("Unauthorized access to receipt.");
+// Check authorization if active session exists
+if (isset($_SESSION['user_id'])) {
+    $curr = current_user();
+    if ($curr && $curr['role'] !== 'admin' && $curr['id'] != $receipt['user_id']) {
+        die("Unauthorized access to receipt.");
+    }
 }
 ?>
 <!DOCTYPE html>

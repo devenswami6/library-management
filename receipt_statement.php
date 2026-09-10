@@ -2,22 +2,21 @@
 // receipt_statement.php - 12-Month Printable Fee Statement & Ledger Report
 
 require_once __DIR__ . '/config/auth.php';
-require_login();
 
 $student_id = (int)($_GET['user_id'] ?? 0);
-$curr_user = current_user();
 
-if (!$student_id) {
-    if ($curr_user['role'] === 'student') {
+if (isset($_SESSION['user_id'])) {
+    $curr_user = current_user();
+    if (!$student_id && $curr_user['role'] === 'student') {
         $student_id = $curr_user['id'];
-    } else {
-        die("Student ID missing.");
+    }
+    if ($curr_user && $curr_user['role'] !== 'admin' && $curr_user['id'] != $student_id) {
+        die("Unauthorized access to fee statement.");
     }
 }
 
-// Check authorization (Admin or the student themselves)
-if ($curr_user['role'] !== 'admin' && $curr_user['id'] != $student_id) {
-    die("Unauthorized access to fee statement.");
+if (!$student_id) {
+    die("Student ID missing.");
 }
 
 // Fetch Student Profile
