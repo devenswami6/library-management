@@ -57,7 +57,7 @@ class _StudentFeeScreenState extends State<StudentFeeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Receipt History (Last 5 Months)',
+                      'Receipt History (Last 12 Months)',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),

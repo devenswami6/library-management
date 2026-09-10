@@ -373,7 +373,7 @@ $active_tab = $_GET['tab'] ?? 'seatmap';
                                             <i class="fas fa-cash-register"></i> <?php echo !empty($info['is_advance']) ? 'Collect Advance Fee (' . date('M Y', strtotime($info['target_month'].'-01')) . ')' : 'Collect Fee (' . date('M Y', strtotime($info['target_month'].'-01')) . ')'; ?>
                                         </button>
                                         <button class="btn btn-secondary btn-sm" onclick="openStudentHistoryModal(<?php echo $row['id']; ?>, '<?php echo addslashes($row['name']); ?>')">
-                                            <i class="fas fa-history"></i> History (5 Mo)
+                                            <i class="fas fa-history"></i> 12-Mo History & PDF
                                         </button>
                                     </div>
                                 </td>
