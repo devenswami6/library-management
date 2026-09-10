@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/api_config.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -42,8 +43,28 @@ class _StudentFeeScreenState extends State<StudentFeeScreen> {
     }
   }
 
+  Future<void> _openPdfUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open PDF: $url')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentUser = Provider.of<AuthProvider>(context, listen: false).currentUser;
+    final String statementPdfUrl = currentUser != null
+        ? '${ApiConfig.baseUrl}/receipt_statement.php?user_id=${currentUser.id}'
+        : '${ApiConfig.baseUrl}/receipt_statement.php';
+
     return Scaffold(
       appBar: const CustomAppBar(title: 'My Fee Details & Receipts'),
       body: _isLoading
@@ -56,9 +77,51 @@ class _StudentFeeScreenState extends State<StudentFeeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Top Bar: Title & PDF Statement Download Button
+                    Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      color: AppColors.primaryIndigo.withOpacity(0.08),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Fee Receipts & Statement',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Download 12-Month Statement or Receipts',
+                                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.picture_as_pdf, size: 14),
+                              label: const Text('12-Mo PDF'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade700,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                              onPressed: () => _openPdfUrl(statementPdfUrl),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     const Text(
                       'Receipt History (Last 12 Months)',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
 
@@ -148,8 +211,23 @@ class _StudentFeeScreenState extends State<StudentFeeScreen> {
                                       ]
                                     ],
                                   ),
-                                  trailing: isPaid
-                                      ? const Icon(Icons.check_circle, color: AppColors.seatAvailable)
+                                  trailing: isPaid && (item['receipt_no'] ?? '').toString().isNotEmpty
+                                      ? OutlinedButton.icon(
+                                          icon: const Icon(Icons.download, size: 12),
+                                          label: const Text('Receipt'),
+                                          style: OutlinedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            foregroundColor: Colors.green.shade800,
+                                            side: BorderSide(color: Colors.green.shade600),
+                                            textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                          onPressed: () {
+                                            final rNo = item['receipt_no'] ?? '';
+                                            _openPdfUrl('${ApiConfig.baseUrl}/receipt.php?receipt_no=${Uri.encodeComponent(rNo)}');
+                                          },
+                                        )
                                       : const Icon(Icons.error_outline, color: AppColors.seatPending),
                                 ),
                               );

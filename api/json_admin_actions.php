@@ -692,6 +692,50 @@ try {
         echo json_encode(['success' => true, 'message' => "Student record '$student_name' permanently deleted from database."]);
         exit();
 
+    } elseif ($action === 'get_admin_notifications') {
+        // Fetch new pending student registrations, open support tickets, and unread direct chat messages for Admin phone notifications
+        $pending = $pdo->query("SELECT id, name, phone, created_at FROM users WHERE role = 'student' AND status = 'pending' ORDER BY id DESC LIMIT 5")->fetchAll();
+        $open_complaints = $pdo->query("SELECT c.id, c.subject, c.category, u.name as student_name, c.created_at FROM complaints c JOIN users u ON c.user_id = u.id WHERE c.status = 'open' ORDER BY c.id DESC LIMIT 5")->fetchAll();
+        $unread_chats = $pdo->query("SELECT m.id, m.message, m.sender_id, u.name as student_name, m.created_at FROM chat_messages m JOIN users u ON m.sender_id = u.id WHERE (m.receiver_id = 1 OR m.receiver_id = 0) AND m.is_read = 0 ORDER BY m.id DESC LIMIT 5")->fetchAll();
+
+        $admin_notifs = [];
+
+        foreach ($pending as $p) {
+            $admin_notifs[] = [
+                'id' => 1000000 + (int)$p['id'],
+                'type' => 'registration',
+                'title' => '🎓 New Student Registration Pending!',
+                'message' => "Student {$p['name']} (Phone: {$p['phone']}) registered. Click to assign seat desk.",
+                'created_at' => $p['created_at']
+            ];
+        }
+
+        foreach ($open_complaints as $c) {
+            $admin_notifs[] = [
+                'id' => 2000000 + (int)$c['id'],
+                'type' => 'complaint',
+                'title' => '⚠️ New Facility Support Request!',
+                'message' => "{$c['student_name']} logged ticket: {$c['subject']} ({$c['category']}).",
+                'created_at' => $c['created_at']
+            ];
+        }
+
+        foreach ($unread_chats as $ch) {
+            $admin_notifs[] = [
+                'id' => 3000000 + (int)$ch['id'],
+                'type' => 'chat',
+                'title' => "💬 New Direct Message from {$ch['student_name']}",
+                'message' => $ch['message'],
+                'created_at' => $ch['created_at']
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'admin_notifications' => $admin_notifs
+        ]);
+        exit();
+
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid admin action specified.']);
         exit();

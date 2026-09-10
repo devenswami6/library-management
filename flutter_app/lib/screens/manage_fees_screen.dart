@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_app_bar.dart';
@@ -41,15 +42,31 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     }
   }
 
+  Future<void> _openPdfUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open PDF: $url')),
+        );
+      }
+    }
+  }
+
   List<dynamic> get _filteredPayments {
     if (_filter == 'all') return _allPayments;
-    return _allPayments.where((p) => p['payment_status'] == _filter).toList();
+    return _allPayments.where((p) => (p['payment_status'] ?? '') == _filter).toList();
   }
 
   void _openRecordPaymentModal(Map<String, dynamic> item) {
-    final TextEditingController amountController =
-        TextEditingController(text: item['fee_amount'].toString());
+    final double defaultAmount = (item['fee_amount'] as num?)?.toDouble() ?? 600.0;
+    final TextEditingController amountController = TextEditingController(text: defaultAmount.toStringAsFixed(0));
     String selectedMode = 'UPI';
+    final bool isAdvance = item['is_advance'] == true;
 
     showModalBottomSheet(
       context: context,
@@ -59,16 +76,13 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
       ),
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            final String monthLabel = item['month_year_label'] ?? item['month_year'] ?? '';
-            final bool isAdvance = item['is_advance'] == true;
-
+          builder: (BuildContext context, StateSetter setModalState) {
             return Padding(
               padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
                 top: 20,
                 left: 20,
                 right: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -78,8 +92,8 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isAdvance ? 'Record Advance Fee' : 'Record Fee Payment',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        isAdvance ? 'Record Advance Fee Collection' : 'Record Monthly Fee Collection',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -88,25 +102,22 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     ],
                   ),
                   const Divider(),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Student: ${item['student_name']}',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    'Desk: ${item['seat_number']} (${item['shift_name']})',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
                   const SizedBox(height: 8),
+
+                  Text('Student: ${item['student_name'] ?? 'N/A'} (Desk ${item['seat_number']})', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Shift: ${item['shift_name'] ?? 'N/A'}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  const SizedBox(height: 8),
+
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: (isAdvance ? Colors.blue : Colors.orange).withOpacity(0.12),
+                      color: isAdvance ? Colors.blue.shade50 : Colors.amber.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isAdvance ? Colors.blue : Colors.orange),
+                      border: Border.all(color: isAdvance ? Colors.blue.shade300 : Colors.amber.shade300),
                     ),
                     child: Text(
-                      'Collecting For Cycle: $monthLabel',
+                      'Collection Cycle: ${item['month_year_label'] ?? item['month_year']}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -116,7 +127,6 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Amount Field
                   TextField(
                     controller: amountController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -128,7 +138,6 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Payment Mode Selector
                   const Text('Payment Mode:', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Wrap(
@@ -138,7 +147,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                       return ChoiceChip(
                         label: Text(mode),
                         selected: isSel,
-                        selectedColor: AppColors.primaryIndigo,
+                        selectedColor: Colors.indigo,
                         labelStyle: TextStyle(
                           color: isSel ? Colors.white : Colors.black,
                           fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
@@ -151,7 +160,6 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Confirm Button
                   SizedBox(
                     width: double.infinity,
                     height: 48,
@@ -159,18 +167,13 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                       icon: const Icon(Icons.receipt_long),
                       label: Text(isAdvance ? 'Record Advance Payment' : 'Record Payment & Send Receipt'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.seatAvailable,
+                        backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () async {
                         final double amount = double.tryParse(amountController.text.trim()) ?? 0;
-                        if (amount <= 0) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            const SnackBar(content: Text('Please enter a valid amount')),
-                          );
-                          return;
-                        }
+                        if (amount <= 0) return;
 
                         Navigator.pop(ctx);
                         setState(() => _isLoading = true);
@@ -205,6 +208,8 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
   }
 
   void _openStudentHistoryModal(Map<String, dynamic> item) {
+    final String statementPdfUrl = '${ApiConfig.baseUrl}/receipt_statement.php?user_id=${item['user_id']}';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -232,9 +237,11 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '5-Month History: ${item['student_name']}',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: Text(
+                          '12-Month History: ${item['student_name']}',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -242,8 +249,24 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                       ),
                     ],
                   ),
-                  const Divider(),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf, size: 14),
+                      label: const Text('Download 12-Month Statement (PDF)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () => _openPdfUrl(statementPdfUrl),
+                    ),
+                  ),
+                  const Divider(height: 20),
+
                   history.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(20),
@@ -256,6 +279,9 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                             itemBuilder: (c, i) {
                               final h = history[i];
                               final bool isPaid = h['payment_status'] == 'paid';
+                              final String rNo = h['receipt_no'] ?? '';
+                              final String receiptPdfUrl = '${ApiConfig.baseUrl}/receipt.php?receipt_no=${Uri.encodeComponent(rNo)}';
+
                               return ListTile(
                                 dense: true,
                                 contentPadding: EdgeInsets.zero,
@@ -273,6 +299,21 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                                       : 'Due Date: ${h['due_date']}',
                                   style: const TextStyle(fontSize: 11),
                                 ),
+                                trailing: isPaid && rNo.isNotEmpty
+                                    ? OutlinedButton.icon(
+                                        icon: const Icon(Icons.download, size: 12),
+                                        label: const Text('Receipt'),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          foregroundColor: Colors.green.shade800,
+                                          side: BorderSide(color: Colors.green.shade600),
+                                          textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                        ),
+                                        onPressed: () => _openPdfUrl(receiptPdfUrl),
+                                      )
+                                    : null,
                               );
                             },
                           ),
@@ -522,49 +563,58 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
             const Divider(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Monthly Fee: ₹${(item['fee_amount'] as num).toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Next Due: ${item['due_date'] ?? 'N/A'}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: status == 'overdue' ? Colors.red : Colors.grey.shade600,
-                      ),
-                    ),
-                    if (item['month_year_label'] != null)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Cycle: ${item['month_year_label']}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.primaryIndigo, fontWeight: FontWeight.w600),
+                        'Monthly Fee: ₹${(item['fee_amount'] as num).toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        'Next Due: ${item['due_date'] ?? 'N/A'}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: status == 'overdue' ? Colors.red : Colors.grey.shade600,
+                        ),
+                      ),
+                      if (item['month_year_label'] != null)
+                        Text(
+                          'Cycle: ${item['month_year_label']}',
+                          style: const TextStyle(fontSize: 11, color: AppColors.primaryIndigo, fontWeight: FontWeight.w600),
+                        ),
+                    ],
+                  ),
                 ),
 
-                Row(
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.end,
                   children: [
                     OutlinedButton.icon(
-                      icon: const Icon(Icons.history, size: 14),
+                      icon: const Icon(Icons.history, size: 12),
                       label: const Text('History'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         textStyle: const TextStyle(fontSize: 11),
                       ),
                       onPressed: () => _openStudentHistoryModal(item),
                     ),
-                    const SizedBox(width: 6),
                     ElevatedButton.icon(
-                      icon: Icon(isAdvance ? Icons.forward_5 : Icons.add_card, size: 14),
+                      icon: Icon(isAdvance ? Icons.forward_5 : Icons.add_card, size: 12),
                       label: Text(isAdvance ? 'Advance' : 'Collect'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isAdvance ? Colors.blue.shade700 : AppColors.seatAvailable,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                       onPressed: () => _openRecordPaymentModal(item),

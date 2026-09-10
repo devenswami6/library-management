@@ -171,6 +171,38 @@ class LibraryNotificationService : Service() {
                     }
                 }
                 connection.disconnect()
+
+                // 3. Poll Admin Notifications (New Student Registrations, Support Tickets, Direct Student Messages)
+                val adminUrl = URL("$baseUrl/api/json_admin_actions.php?action=get_admin_notifications")
+                val adminConn = adminUrl.openConnection() as HttpURLConnection
+                adminConn.requestMethod = "GET"
+                adminConn.connectTimeout = 4000
+                adminConn.readTimeout = 4000
+
+                if (adminConn.responseCode == 200) {
+                    val adminResp = adminConn.inputStream.bufferedReader().use { it.readText() }
+                    val adminJson = JSONObject(adminResp)
+                    if (adminJson.optBoolean("success")) {
+                        val adminNotifs = adminJson.optJSONArray("admin_notifications")
+                        if (adminNotifs != null) {
+                            for (i in 0 until adminNotifs.length()) {
+                                val item = adminNotifs.getJSONObject(i)
+                                val id = item.optInt("id", 0)
+                                val title = item.optString("title", "Admin Alert")
+                                val message = item.optString("message", "")
+
+                                if (id > 0 && message.isNotBlank()) {
+                                    if (!shownNotifIds.contains(id)) {
+                                        shownNotifIds.add(id)
+                                        saveShownIdsToPrefs()
+                                        showHeadsUpNotification(id, title, message)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                adminConn.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
             }

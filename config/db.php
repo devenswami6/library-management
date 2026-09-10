@@ -188,8 +188,9 @@ function init_database($pdo) {
     if ($shift_count == 0) {
         $stmt = $pdo->prepare("INSERT INTO shifts (name, start_time, end_time, fee_amount) VALUES (?, ?, ?, ?)");
         $stmt->execute(['Morning Half Day Shift', '08:00', '14:00', 600.00]);
-        $stmt->execute(['Afternoon / Evening Shift', '14:00', '21:00', 700.00]);
-        $stmt->execute(['Full Day (24 Hours)', '08:00', '08:00', 1200.00]);
+        $stmt->execute(['Afternoon / Evening Shift', '14:00', '21:00', 600.00]);
+        $stmt->execute(['Full Day', '08:00', '22:00', 700.00]);
+        $stmt->execute(['Full Day (24 Hours)', '00:00', '23:59', 1200.00]);
     }
 
     // Seed Seats
@@ -264,8 +265,12 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
-// Migration check: Update initial default shifts to new requested timings if present
-$pdo->exec("UPDATE shifts SET name = 'Morning Half Day Shift', start_time = '08:00', end_time = '14:00' WHERE id = 1 AND name LIKE '%Morning%'");
-$pdo->exec("UPDATE shifts SET name = 'Afternoon / Evening Shift', start_time = '14:00', end_time = '21:00' WHERE id = 2 AND name LIKE '%Afternoon%'");
-$pdo->exec("UPDATE shifts SET name = 'Full Day (24 Hours)', start_time = '08:00', end_time = '08:00' WHERE id = 4 OR (id = 3 AND name LIKE '%Full Day%')");
+// Migration check: Ensure shift #3 is 'Full Day' and shift #4 is 'Full Day (24 Hours)'
+try {
+    $pdo->exec("UPDATE shifts SET name = 'Full Day', start_time = '08:00', end_time = '22:00' WHERE id = 3 AND name LIKE '%24 Hours%'");
+    $stmt_check4 = $pdo->query("SELECT id FROM shifts WHERE id = 4")->fetch();
+    if (!$stmt_check4) {
+        $pdo->exec("INSERT INTO shifts (id, name, start_time, end_time, fee_amount, is_active) VALUES (4, 'Full Day (24 Hours)', '00:00', '23:59', 1200.00, 1)");
+    }
+} catch (Exception $e) {}
 ?>
