@@ -140,7 +140,7 @@ if ($action === 'record_payment') {
     $receipt_no = "REC-" . date('Ymd') . "-" . rand(1000, 9999);
     $today = date('Y-m-d');
 
-    $stmt = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ?");
+    $stmt = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ? AND payment_status != 'paid'");
     $stmt->execute([$allocation_id, $month_year]);
     $payment = $stmt->fetch();
 

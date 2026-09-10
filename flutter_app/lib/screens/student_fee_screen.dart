@@ -102,9 +102,28 @@ class _StudentFeeScreenState extends State<StudentFeeScreen> {
                                       color: isPaid ? AppColors.seatAvailable : AppColors.seatPending,
                                     ),
                                   ),
-                                  title: Text(
-                                    'Month: ${item['month_year']} • ₹${(item['amount'] as num).toStringAsFixed(2)}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        'Month: ${item['month_year']} • ₹${(item['amount'] as num).toStringAsFixed(2)}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
+                                      if ((item['month_year'] ?? '').toString().compareTo("${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}") > 0) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: Colors.blue, width: 0.8),
+                                          ),
+                                          child: const Text(
+                                            'ADVANCE',
+                                            style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   subtitle: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
