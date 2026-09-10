@@ -306,10 +306,6 @@ try {
         $pending_count = 0;
         $overdue_count = 0;
 
-        // Calculate total collected across all paid records
-        $stmt_total = $pdo->query("SELECT SUM(amount) FROM fee_payments WHERE payment_status = 'paid'");
-        $total_collected = (float)$stmt_total->fetchColumn();
-
         foreach ($allocations as $alloc) {
             $fee_status = get_student_fee_status($pdo, $alloc['allocation_id'], $alloc['start_date']);
 
@@ -317,6 +313,8 @@ try {
                 $overdue_count++;
             } elseif ($fee_status['status'] === 'pending') {
                 $pending_count++;
+            } elseif ($fee_status['status'] === 'paid') {
+                $total_collected += (float)$alloc['fee_amount'];
             }
 
             $payments_list[] = [
