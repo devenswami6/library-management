@@ -33,6 +33,13 @@ if ($user) {
     $payments = $stmt_pay->fetchAll();
 }
 
+// Auto-purge help tickets (complaints), notifications, and chat messages older than 2 days (48 hours)
+try {
+    $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-2 days')");
+    $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
+    $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+} catch (Exception $e) {}
+
 // Fetch Today's Attendance
 $today = date('Y-m-d');
 $stmt_att = $pdo->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
@@ -153,6 +160,7 @@ $active_tab = $_GET['tab'] ?? 'tabSeatInfo';
         <button class="tab-btn <?php echo $active_tab === 'tabFees' ? 'active' : ''; ?>" data-tab="tabFees"><i class="fas fa-file-invoice-dollar"></i> Monthly Fee Ledger</button>
         <button class="tab-btn <?php echo $active_tab === 'tabAttendance' ? 'active' : ''; ?>" data-tab="tabAttendance"><i class="fas fa-user-check"></i> Daily Attendance</button>
         <button class="tab-btn <?php echo $active_tab === 'tabSupport' ? 'active' : ''; ?>" data-tab="tabSupport"><i class="fas fa-headset"></i> Facility Support Desk</button>
+        <button class="tab-btn <?php echo $active_tab === 'tabChat' ? 'active' : ''; ?>" data-tab="tabChat"><i class="fas fa-comments" style="color: #06b6d4;"></i> Direct Admin Chat</button>
     </div>
 
     <!-- TAB 1: PERSONAL SEAT & MEMBERSHIP INFO -->
@@ -399,6 +407,50 @@ $active_tab = $_GET['tab'] ?? 'tabSeatInfo';
             </table>
         </div>
     </div>
+
+    <!-- TAB 6: DIRECT ADMIN CHAT -->
+    <div id="tabChat" class="tab-pane <?php echo $active_tab === 'tabChat' ? 'active' : ''; ?>">
+        <div style="margin-bottom: 16px;">
+            <h3><i class="fas fa-comments" style="color: #06b6d4;"></i> Direct Chat with Library Admin</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                Send direct instant messages to library administration for quick support, questions, or assistance.
+            </p>
+        </div>
+
+        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-surface-elevated);">
+            <!-- Chat Header -->
+            <div style="padding: 14px 20px; background: rgba(6, 182, 212, 0.08); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: 50%; background: #06b6d4; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold;">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div>
+                        <strong style="font-size: 0.98rem; display: block;">Keshav Library Administration Desk</strong>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">Direct Live Messenger</span>
+                    </div>
+                </div>
+                <span class="badge badge-success" style="font-size: 0.78rem; padding: 6px 12px;">
+                    <i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 4px;"></i> Online
+                </span>
+            </div>
+
+            <!-- Chat History Scroll Box -->
+            <div id="studentChatMessagesBox" style="height: 380px; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: var(--bg-surface);">
+                <div style="text-align: center; color: var(--text-muted); margin-top: 40px;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top: 8px;">Loading chat messages...</p>
+                </div>
+            </div>
+
+            <!-- Input Bar -->
+            <div style="padding: 14px 18px; background: var(--bg-surface-elevated); border-top: 1px solid var(--border-color); display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="studentChatInput" class="form-control" placeholder="Type your message to Admin..." onkeypress="if(event.key === 'Enter') sendStudentChatMessage();" style="border-radius: 20px; padding: 10px 18px; flex: 1;">
+                <button type="button" id="btnStudentSendChat" onclick="sendStudentChatMessage();" class="btn btn-primary" style="border-radius: 20px; padding: 10px 22px;">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal: Submit New Complaint Ticket -->
@@ -480,6 +532,122 @@ function submitWithLocation(e, form) {
     );
     return false;
 }
+
+/* --- STUDENT DIRECT ADMIN CHAT SYSTEM --- */
+const currentStudentUserId = <?php echo (int)$user['id']; ?>;
+let studentChatInterval = null;
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;")
+               .replace(/</g, "&lt;")
+               .replace(/>/g, "&gt;")
+               .replace(/"/g, "&quot;")
+               .replace(/'/g, "&#039;");
+}
+
+function loadStudentChatMessages() {
+    fetch(`api/json_student_actions.php?action=get_chat_messages&user_id=${currentStudentUserId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const box = document.getElementById('studentChatMessagesBox');
+                if (!box) return;
+                const msgs = data.messages || [];
+                if (msgs.length === 0) {
+                    box.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 40px;">
+                        <i class="far fa-comments fa-3x" style="color: var(--border-color); margin-bottom: 8px; display: block;"></i>
+                        <p>No chat history yet. Send a message below to talk directly with Admin!</p>
+                    </div>`;
+                    return;
+                }
+
+                let html = '';
+                msgs.forEach(m => {
+                    const isMe = parseInt(m.sender_id) === currentStudentUserId;
+                    const align = isMe ? 'flex-end' : 'flex-start';
+                    const bg = isMe ? 'var(--accent-primary)' : 'var(--bg-surface-elevated)';
+                    const color = isMe ? '#ffffff' : 'var(--text-main)';
+                    const border = isMe ? 'none' : '1px solid var(--border-color)';
+                    const senderTag = isMe ? 'You' : 'Admin Desk 🛡️';
+
+                    html += `
+                        <div style="display: flex; justify-content: ${align}; width: 100%;">
+                            <div style="max-width: 75%; padding: 10px 14px; border-radius: 14px; background: ${bg}; color: ${color}; border: ${border}; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+                                <div style="font-weight: 600; font-size: 0.75rem; margin-bottom: 4px; opacity: 0.85;">${senderTag}</div>
+                                <div style="font-size: 0.92rem; line-height: 1.4; word-break: break-word;">${escapeHtml(m.message)}</div>
+                                <div style="font-size: 0.68rem; opacity: 0.7; text-align: right; margin-top: 4px;">${m.created_at || ''}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const wasAtBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 80;
+                box.innerHTML = html;
+                if (wasAtBottom || !box.dataset.loadedOnce) {
+                    box.scrollTop = box.scrollHeight;
+                    box.dataset.loadedOnce = 'true';
+                }
+            }
+        })
+        .catch(err => console.error("Error loading student chat:", err));
+}
+
+function sendStudentChatMessage() {
+    const input = document.getElementById('studentChatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const btn = document.getElementById('btnStudentSendChat');
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('action', 'send_chat_message');
+    formData.append('user_id', currentStudentUserId);
+    formData.append('message', msg);
+
+    fetch('api/json_student_actions.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success) {
+            input.value = '';
+            loadStudentChatMessages();
+        } else {
+            alert(data.message || 'Failed to send message.');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        alert('Network connection error.');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.getAttribute('data-tab') === 'tabChat') {
+                loadStudentChatMessages();
+                if (!studentChatInterval) {
+                    studentChatInterval = setInterval(loadStudentChatMessages, 3000);
+                }
+            } else {
+                if (studentChatInterval) {
+                    clearInterval(studentChatInterval);
+                    studentChatInterval = null;
+                }
+            }
+        });
+    });
+
+    <?php if ($active_tab === 'tabChat'): ?>
+    loadStudentChatMessages();
+    studentChatInterval = setInterval(loadStudentChatMessages, 3000);
+    <?php endif; ?>
+});
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

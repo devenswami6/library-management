@@ -71,7 +71,12 @@ $stmt_att_full = $pdo->query("
     WHERE u.role = 'student' AND u.status = 'approved'
     ORDER BY att.check_in_time DESC, u.name ASC
 ");
-$attendance_roster = $stmt_att_full->fetchAll();
+// Auto-purge complaints, notifications, and chat messages older than 2 days (48 hours)
+try {
+    $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-2 days')");
+    $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
+    $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+} catch (Exception $e) {}
 
 // Fetch Complaints
 $stmt_comp_all = $pdo->query("

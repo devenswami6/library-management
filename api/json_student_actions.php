@@ -83,6 +83,7 @@ try {
 
         // Auto-delete notifications & chat messages older than 2 days (48 hours)
         try {
+            $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-2 days')");
             $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
             $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
         } catch (Exception $e) {}
