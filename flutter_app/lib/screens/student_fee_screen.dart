@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../config/api_config.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -44,11 +44,9 @@ class _StudentFeeScreenState extends State<StudentFeeScreen> {
   }
 
   Future<void> _openPdfUrl(String url) async {
-    final Uri uri = Uri.parse(url);
     try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        await launchUrl(uri);
-      }
+      const channel = MethodChannel('com.example.flutter_app/notifications');
+      await channel.invokeMethod('launchUrl', {'url': url});
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

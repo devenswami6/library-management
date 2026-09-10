@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_app_bar.dart';
@@ -43,11 +43,9 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
   }
 
   Future<void> _openPdfUrl(String url) async {
-    final Uri uri = Uri.parse(url);
     try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        await launchUrl(uri);
-      }
+      const channel = MethodChannel('com.example.flutter_app/notifications');
+      await channel.invokeMethod('launchUrl', {'url': url});
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
