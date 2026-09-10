@@ -368,9 +368,14 @@ $active_tab = $_GET['tab'] ?? 'seatmap';
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn btn-success btn-sm" onclick="openPaymentModal(<?php echo $row['allocation_id']; ?>, <?php echo $row['id']; ?>, '<?php echo addslashes($row['name']); ?>', <?php echo $row['fee_amount']; ?>)">
-                                        <i class="fas fa-cash-register"></i> Collect Fee / Record Payment
-                                    </button>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                        <button class="btn btn-success btn-sm" onclick="openPaymentModal(<?php echo $row['allocation_id']; ?>, <?php echo $row['id']; ?>, '<?php echo addslashes($row['name']); ?>', <?php echo $row['fee_amount']; ?>, '<?php echo $info['target_month']; ?>')">
+                                            <i class="fas fa-cash-register"></i> <?php echo !empty($info['is_advance']) ? 'Collect Advance Fee (' . date('M Y', strtotime($info['target_month'].'-01')) . ')' : 'Collect Fee (' . date('M Y', strtotime($info['target_month'].'-01')) . ')'; ?>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="openStudentHistoryModal(<?php echo $row['id']; ?>, '<?php echo addslashes($row['name']); ?>')">
+                                            <i class="fas fa-history"></i> History (5 Mo)
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -1098,7 +1103,7 @@ $active_tab = $_GET['tab'] ?? 'seatmap';
             <div class="grid-2">
                 <div class="form-group">
                     <label class="form-label">Collection Month Cycle</label>
-                    <input type="month" name="month_year" class="form-control" value="<?php echo date('Y-m'); ?>" required>
+                    <input type="month" name="month_year" id="payMonthYear" class="form-control" value="<?php echo date('Y-m'); ?>" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Fee Amount (₹)</label>
@@ -1121,6 +1126,22 @@ $active_tab = $_GET['tab'] ?? 'seatmap';
                 <button type="submit" class="btn btn-success"><i class="fas fa-receipt"></i> Generate Digital Receipt</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- MODAL: STUDENT FEE HISTORY (LAST 5 MONTHS) -->
+<div id="modalStudentHistory" class="modal-overlay">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-history"></i> Fee History (Last 5 Months) - <span id="histStudentName">Student</span></h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div id="histModalContent" style="padding: 10px 0;">
+            <p style="text-align: center; color: var(--text-muted);">Loading payment history...</p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+            <button type="button" class="btn btn-secondary modal-close">Close</button>
+        </div>
     </div>
 </div>
 
@@ -1212,12 +1233,67 @@ function openApproveModal(userId, seatId, shiftId) {
     openModal('modalApproveAllot');
 }
 
-function openPaymentModal(allocationId, userId, studentName, amount) {
+function openPaymentModal(allocationId, userId, studentName, amount, monthYear) {
     document.getElementById('payAllocationId').value = allocationId;
     document.getElementById('payUserId').value = userId;
     document.getElementById('payStudentName').value = studentName;
     document.getElementById('payAmount').value = amount;
+    if (monthYear) {
+        document.getElementById('payMonthYear').value = monthYear;
+    }
     openModal('modalRecordPayment');
+}
+
+function openStudentHistoryModal(userId, studentName) {
+    document.getElementById('histStudentName').innerText = studentName;
+    const container = document.getElementById('histModalContent');
+    container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 15px;"><i class="fas fa-spinner fa-spin"></i> Loading 5-month payment history...</p>';
+    openModal('modalStudentHistory');
+
+    fetch(`api/json_admin_actions.php?action=get_student_fee_history&user_id=${userId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.fee_history && data.fee_history.length > 0) {
+                let html = `
+                    <div class="table-responsive">
+                        <table class="custom-table" style="font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Amount</th>
+                                    <th>Paid Date</th>
+                                    <th>Mode</th>
+                                    <th>Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                data.fee_history.forEach(p => {
+                    const isPaid = p.payment_status === 'paid';
+                    const badgeClass = isPaid ? 'badge-success' : (p.payment_status === 'overdue' ? 'badge-danger' : 'badge-warning');
+                    html += `
+                        <tr>
+                            <td><strong>${p.month_year}</strong></td>
+                            <td>₹${parseFloat(p.amount).toFixed(2)}</td>
+                            <td>${p.paid_date ? p.paid_date : '<span style="color:var(--text-muted);">Unpaid</span>'}</td>
+                            <td>${p.payment_mode || 'N/A'}</td>
+                            <td>
+                                ${isPaid && p.receipt_no 
+                                    ? `<a href="receipt.php?receipt_no=${encodeURIComponent(p.receipt_no)}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.75rem;"><i class="fas fa-receipt"></i> ${p.receipt_no}</a>` 
+                                    : `<span class="badge ${badgeClass}">${p.payment_status.toUpperCase()}</span>`}
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `</tbody></table></div>`;
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No payment history found for the last 5 months.</p>';
+            }
+        })
+        .catch(err => {
+            container.innerHTML = '<p style="text-align: center; color: var(--text-danger); padding: 20px;">Failed to load payment history.</p>';
+        });
 }
 
 // WEB ADMIN DIRECT CHAT ENGINE

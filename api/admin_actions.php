@@ -100,32 +100,54 @@ if ($action === 'record_payment') {
     $user_id = (int)$_POST['user_id'];
     $amount = (float)$_POST['amount'];
     $payment_mode = trim($_POST['payment_mode'] ?? 'Cash');
-    $month_year = trim($_POST['month_year'] ?? date('Y-m'));
+    $month_year = trim($_POST['month_year'] ?? '');
 
     if (!$allocation_id || !$user_id || !$amount) {
         header("Location: ../admin_dashboard.php?tab=fees&error=" . urlencode("Invalid payment data."));
         exit();
     }
 
+    // Fetch student start date
+    $stmt_alloc = $pdo->prepare("SELECT start_date FROM allocations WHERE id = ?");
+    $stmt_alloc->execute([$allocation_id]);
+    $alloc = $stmt_alloc->fetch();
+    $start_date = $alloc['start_date'] ?? date('Y-m-d');
+
+    if (empty($month_year)) {
+        $fee_status = get_student_fee_status($pdo, $allocation_id, $start_date);
+        $month_year = $fee_status['target_month'];
+    }
+
+    // Calculate due date for month_year
+    $start_day = (int)date('d', strtotime($start_date));
+    $ym_parts = explode('-', $month_year);
+    $target_y = (int)($ym_parts[0] ?? date('Y'));
+    $target_m = (int)($ym_parts[1] ?? date('m'));
+    $days_in_m = (int)date('t', strtotime(sprintf("%04d-%02d-01", $target_y, $target_m)));
+    $actual_day = min($start_day, $days_in_m);
+    $due_date = sprintf("%04d-%02d-%02d", $target_y, $target_m, $actual_day);
+
     $receipt_no = "REC-" . date('Ymd') . "-" . rand(1000, 9999);
+    $today = date('Y-m-d');
 
     $stmt = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ?");
     $stmt->execute([$allocation_id, $month_year]);
     $payment = $stmt->fetch();
 
     if ($payment) {
-        $update = $pdo->prepare("UPDATE fee_payments SET amount = ?, paid_date = date('now'), payment_status = 'paid', payment_mode = ?, receipt_no = ? WHERE id = ?");
-        $update->execute([$amount, $payment_mode, $receipt_no, $payment['id']]);
+        $update = $pdo->prepare("UPDATE fee_payments SET amount = ?, paid_date = ?, payment_status = 'paid', payment_mode = ?, receipt_no = ?, due_date = ? WHERE id = ?");
+        $update->execute([$amount, $today, $payment_mode, $receipt_no, $due_date, $payment['id']]);
     } else {
-        $due_date = date('Y-m-d');
-        $insert = $pdo->prepare("INSERT INTO fee_payments (allocation_id, user_id, month_year, amount, due_date, paid_date, payment_status, payment_mode, receipt_no) VALUES (?, ?, ?, ?, ?, date('now'), 'paid', ?, ?)");
-        $insert->execute([$allocation_id, $user_id, $month_year, $amount, $due_date, $payment_mode, $receipt_no]);
+        $insert = $pdo->prepare("INSERT INTO fee_payments (allocation_id, user_id, month_year, amount, due_date, paid_date, payment_status, payment_mode, receipt_no) VALUES (?, ?, ?, ?, ?, ?, 'paid', ?, ?)");
+        $insert->execute([$allocation_id, $user_id, $month_year, $amount, $due_date, $today, $payment_mode, $receipt_no]);
     }
 
-    $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)")
-        ->execute([$user_id, 'Monthly Fee Payment Received 💳', "Thank you! Monthly fee payment of ₹$amount for $month_year has been recorded. Receipt No: $receipt_no"]);
+    $month_label = date('F Y', strtotime($month_year . '-01'));
 
-    header("Location: ../admin_dashboard.php?tab=fees&msg=" . urlencode("Fee payment recorded successfully! Receipt Generated: " . $receipt_no));
+    $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)")
+        ->execute([$user_id, 'Monthly Fee Payment Received 💳', "Thank you! Fee payment of ₹$amount for $month_label has been recorded. Receipt No: $receipt_no"]);
+
+    header("Location: ../admin_dashboard.php?tab=fees&msg=" . urlencode("Fee payment for $month_label recorded successfully! Receipt Generated: " . $receipt_no));
     exit();
 }
 

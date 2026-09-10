@@ -288,6 +288,7 @@ try {
         exit();
 
     } elseif ($action === 'get_fee_payments') {
+        require_once __DIR__ . '/../config/auth.php';
         // Fetch fee status for all students with active allocations
         $allocations = $pdo->query("
             SELECT a.id as allocation_id, a.user_id, a.start_date, u.name as student_name, u.phone as student_phone, u.email as student_email,
@@ -304,39 +305,17 @@ try {
         $total_collected = 0;
         $pending_count = 0;
         $overdue_count = 0;
-        $current_month = date('Y-m');
+
+        // Calculate total collected across all paid records
+        $stmt_total = $pdo->query("SELECT SUM(amount) FROM fee_payments WHERE payment_status = 'paid'");
+        $total_collected = (float)$stmt_total->fetchColumn();
 
         foreach ($allocations as $alloc) {
-            // Check existing payment record for current month
-            $stmt_fp = $pdo->prepare("SELECT * FROM fee_payments WHERE allocation_id = ? AND month_year = ?");
-            $stmt_fp->execute([$alloc['allocation_id'], $current_month]);
-            $fp = $stmt_fp->fetch();
+            $fee_status = get_student_fee_status($pdo, $alloc['allocation_id'], $alloc['start_date']);
 
-            $due_date = date('Y-m-d', strtotime($alloc['start_date'] . ' +30 days'));
-            $status = 'pending';
-            $amount = (float)$alloc['fee_amount'];
-            $paid_date = null;
-            $payment_mode = null;
-            $receipt_no = null;
-
-            if ($fp) {
-                $status = $fp['payment_status'];
-                $amount = (float)$fp['amount'];
-                $due_date = $fp['due_date'];
-                $paid_date = $fp['paid_date'];
-                $payment_mode = $fp['payment_mode'];
-                $receipt_no = $fp['receipt_no'];
-            } else {
-                if (date('Y-m-d') > $due_date) {
-                    $status = 'overdue';
-                }
-            }
-
-            if ($status === 'paid') {
-                $total_collected += $amount;
-            } elseif ($status === 'overdue') {
+            if ($fee_status['status'] === 'overdue') {
                 $overdue_count++;
-            } else {
+            } elseif ($fee_status['status'] === 'pending') {
                 $pending_count++;
             }
 
@@ -349,13 +328,13 @@ try {
                 'seat_number' => $alloc['seat_number'],
                 'row_label' => $alloc['row_label'],
                 'shift_name' => $alloc['shift_name'],
-                'fee_amount' => $amount,
-                'month_year' => $current_month,
-                'due_date' => $due_date,
-                'paid_date' => $paid_date,
-                'payment_status' => $status,
-                'payment_mode' => $payment_mode,
-                'receipt_no' => $receipt_no,
+                'fee_amount' => (float)$alloc['fee_amount'],
+                'month_year' => $fee_status['target_month'],
+                'month_year_label' => $fee_status['target_month_label'],
+                'due_date' => $fee_status['due_date'],
+                'payment_status' => $fee_status['status'],
+                'label' => $fee_status['label'],
+                'is_advance' => $fee_status['is_advance'],
             ];
         }
 
@@ -372,16 +351,37 @@ try {
         exit();
 
     } elseif ($action === 'record_fee_payment') {
+        require_once __DIR__ . '/../config/auth.php';
         $allocation_id = (int)($_POST['allocation_id'] ?? 0);
         $user_id = (int)($_POST['user_id'] ?? 0);
         $amount = (float)($_POST['amount'] ?? 0);
         $payment_mode = trim($_POST['payment_mode'] ?? 'Cash');
-        $month_year = trim($_POST['month_year'] ?? date('Y-m'));
+        $month_year = trim($_POST['month_year'] ?? '');
 
         if ($allocation_id <= 0 || $user_id <= 0 || $amount <= 0) {
             echo json_encode(['success' => false, 'message' => 'Invalid fee payment details provided.']);
             exit();
         }
+
+        // Fetch student start date
+        $stmt_alloc = $pdo->prepare("SELECT start_date FROM allocations WHERE id = ?");
+        $stmt_alloc->execute([$allocation_id]);
+        $alloc = $stmt_alloc->fetch();
+        $start_date = $alloc['start_date'] ?? date('Y-m-d');
+
+        if (empty($month_year)) {
+            $fee_status = get_student_fee_status($pdo, $allocation_id, $start_date);
+            $month_year = $fee_status['target_month'];
+        }
+
+        // Calculate due date for the specified month_year
+        $start_day = (int)date('d', strtotime($start_date));
+        $ym_parts = explode('-', $month_year);
+        $target_y = (int)($ym_parts[0] ?? date('Y'));
+        $target_m = (int)($ym_parts[1] ?? date('m'));
+        $days_in_m = (int)date('t', strtotime(sprintf("%04d-%02d-01", $target_y, $target_m)));
+        $actual_day = min($start_day, $days_in_m);
+        $due_date = sprintf("%04d-%02d-%02d", $target_y, $target_m, $actual_day);
 
         $receipt_no = "REC-" . date('Ymd') . "-" . rand(1000, 9999);
         $today = date('Y-m-d');
@@ -393,27 +393,29 @@ try {
         if ($existing) {
             $update = $pdo->prepare("
                 UPDATE fee_payments 
-                SET amount = ?, paid_date = ?, payment_status = 'paid', payment_mode = ?, receipt_no = ? 
+                SET amount = ?, paid_date = ?, payment_status = 'paid', payment_mode = ?, receipt_no = ?, due_date = ? 
                 WHERE id = ?
             ");
-            $update->execute([$amount, $today, $payment_mode, $receipt_no, $existing['id']]);
+            $update->execute([$amount, $today, $payment_mode, $receipt_no, $due_date, $existing['id']]);
         } else {
             $insert = $pdo->prepare("
                 INSERT INTO fee_payments (allocation_id, user_id, month_year, amount, due_date, paid_date, payment_status, payment_mode, receipt_no) 
                 VALUES (?, ?, ?, ?, ?, ?, 'paid', ?, ?)
             ");
-            $insert->execute([$allocation_id, $user_id, $month_year, $amount, $today, $today, $payment_mode, $receipt_no]);
+            $insert->execute([$allocation_id, $user_id, $month_year, $amount, $due_date, $today, $payment_mode, $receipt_no]);
         }
+
+        $month_label = date('F Y', strtotime($month_year . '-01'));
 
         // Notify Student
         $pdo->prepare("
             INSERT INTO notifications (title, message, user_id)
-            VALUES ('Monthly Fee Payment Received 💳', 'Thank you! Monthly fee payment of ₹" . number_format($amount, 2) . " for " . $month_year . " has been recorded. Receipt No: " . $receipt_no . "', ?)
+            VALUES ('Monthly Fee Payment Received 💳', 'Thank you! Fee payment of ₹" . number_format($amount, 2) . " for " . $month_label . " has been recorded. Receipt No: " . $receipt_no . "', ?)
         ")->execute([$user_id]);
 
         echo json_encode([
             'success' => true,
-            'message' => "Payment of ₹$amount recorded successfully!",
+            'message' => "Payment of ₹$amount for $month_label recorded successfully!",
             'receipt_no' => $receipt_no,
         ]);
         exit();

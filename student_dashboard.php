@@ -25,10 +25,10 @@ if ($allocation) {
     $fee_info = get_student_fee_status($pdo, $allocation['id'], $allocation['start_date']);
 }
 
-// Fetch Fee History
+// Fetch Fee History (Last 5 Months)
 $payments = [];
-if ($allocation) {
-    $stmt_pay = $pdo->prepare("SELECT * FROM fee_payments WHERE user_id = ? ORDER BY due_date DESC");
+if ($user) {
+    $stmt_pay = $pdo->prepare("SELECT * FROM fee_payments WHERE user_id = ? ORDER BY due_date DESC, id DESC LIMIT 5");
     $stmt_pay->execute([$user['id']]);
     $payments = $stmt_pay->fetchAll();
 }

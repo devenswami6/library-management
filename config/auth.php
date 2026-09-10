@@ -92,45 +92,96 @@ function get_current_due_date($start_date) {
     return $current_cycle_due->format('Y-m-d');
 }
 
-// Helper to determine fee status badge for a student
+// Helper to determine fee status badge and next payment target for a student
 function get_student_fee_status($pdo, $allocation_id, $start_date) {
-    $current_month = date('Y-m');
-    $due_date = get_current_due_date($start_date);
-    
-    // Check if there is a payment record for current month
-    $stmt = $pdo->prepare("SELECT * FROM fee_payments WHERE allocation_id = ? AND month_year = ?");
-    $stmt->execute([$allocation_id, $current_month]);
-    $payment = $stmt->fetch();
-    
-    if ($payment && $payment['payment_status'] === 'paid') {
-        return [
-            'status' => 'paid',
-            'label' => 'Paid',
-            'badge_class' => 'badge-success',
-            'due_date' => $due_date,
-            'payment' => $payment
-        ];
+    if (!$start_date) {
+        $start_date = date('Y-m-d');
     }
     
-    // If not paid, compare current date with due date
-    $today = date('Y-m-d');
-    if ($today > $due_date) {
-        $days_overdue = (strtotime($today) - strtotime($due_date)) / 86400;
+    $start = new DateTime($start_date);
+    $day_of_month = (int)$start->format('d');
+    
+    // Fetch all paid records for this allocation
+    $stmt = $pdo->prepare("SELECT month_year, paid_date, due_date, amount, payment_mode, receipt_no FROM fee_payments WHERE allocation_id = ? AND payment_status = 'paid' ORDER BY month_year ASC");
+    $stmt->execute([$allocation_id]);
+    $paid_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $paid_months = array_column($paid_records, 'month_year');
+    
+    // Find the first unpaid month starting from registration month or 3 months prior
+    $start_year = (int)$start->format('Y');
+    $start_month = (int)$start->format('m');
+    
+    $curr_dt = new DateTime(sprintf("%04d-%02d-01", $start_year, $start_month));
+    $today = new DateTime();
+    $today_str = $today->format('Y-m-d');
+    
+    $target_month = null;
+    $target_due_date = null;
+    $last_paid_due_date = null;
+    
+    for ($i = 0; $i < 36; $i++) {
+        $m_str = $curr_dt->format('Y-m');
+        $days_in_m = (int)$curr_dt->format('t');
+        $actual_day = min($day_of_month, $days_in_m);
+        $due_str = sprintf("%s-%02d", $m_str, $actual_day);
+        
+        if (in_array($m_str, $paid_months)) {
+            $last_paid_due_date = $due_str;
+        } else {
+            $target_month = $m_str;
+            $target_due_date = $due_str;
+            break;
+        }
+        $curr_dt->modify('+1 month');
+    }
+    
+    if (!$target_month) {
+        $target_month = date('Y-m');
+        $target_due_date = date('Y-m-d');
+    }
+    
+    $current_month_str = date('Y-m');
+    $is_current_paid = in_array($current_month_str, $paid_months);
+    
+    // If today is past last paid date or current month is paid, determine status
+    if ($is_current_paid || ($last_paid_due_date && $today_str < $target_due_date)) {
         return [
-            'status' => 'overdue',
-            'label' => "Overdue ($days_overdue days)",
-            'badge_class' => 'badge-danger',
-            'due_date' => $due_date,
-            'payment' => $payment
+            'status' => 'paid',
+            'label' => 'Paid (Valid till ' . date('d M Y', strtotime($target_due_date)) . ')',
+            'badge_class' => 'badge-success',
+            'due_date' => $target_due_date,
+            'target_month' => $target_month,
+            'target_month_label' => date('F Y', strtotime($target_month . '-01')) . ' (Advance)',
+            'is_advance' => true,
+            'last_paid_due' => $last_paid_due_date
         ];
     } else {
-        return [
-            'status' => 'pending',
-            'label' => 'Due Soon',
-            'badge_class' => 'badge-warning',
-            'due_date' => $due_date,
-            'payment' => $payment
-        ];
+        if ($today_str > $target_due_date) {
+            $days_overdue = (int)floor((strtotime($today_str) - strtotime($target_due_date)) / 86400);
+            $days_overdue = max(1, $days_overdue);
+            return [
+                'status' => 'overdue',
+                'label' => "Overdue ($days_overdue days)",
+                'badge_class' => 'badge-danger',
+                'due_date' => $target_due_date,
+                'target_month' => $target_month,
+                'target_month_label' => date('F Y', strtotime($target_month . '-01')),
+                'is_advance' => false,
+                'last_paid_due' => $last_paid_due_date
+            ];
+        } else {
+            return [
+                'status' => 'pending',
+                'label' => 'Due Soon (' . date('d M Y', strtotime($target_due_date)) . ')',
+                'badge_class' => 'badge-warning',
+                'due_date' => $target_due_date,
+                'target_month' => $target_month,
+                'target_month_label' => date('F Y', strtotime($target_month . '-01')),
+                'is_advance' => false,
+                'last_paid_due' => $last_paid_due_date
+            ];
+        }
     }
 }
 ?>

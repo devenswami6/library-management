@@ -60,6 +60,9 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
+            final String monthLabel = item['month_year_label'] ?? item['month_year'] ?? '';
+            final bool isAdvance = item['is_advance'] == true;
+
             return Padding(
               padding: EdgeInsets.only(
                 top: 20,
@@ -74,9 +77,9 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Record Monthly Fee Payment',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      Text(
+                        isAdvance ? 'Record Advance Fee' : 'Record Fee Payment',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -85,14 +88,31 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     ],
                   ),
                   const Divider(),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
                     'Student: ${item['student_name']}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                   Text(
                     'Desk: ${item['seat_number']} (${item['shift_name']})',
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (isAdvance ? Colors.blue : Colors.orange).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isAdvance ? Colors.blue : Colors.orange),
+                    ),
+                    child: Text(
+                      'Collecting For Cycle: $monthLabel',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: isAdvance ? Colors.blue.shade800 : Colors.orange.shade800,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -137,7 +157,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     height: 48,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.receipt_long),
-                      label: const Text('Record Payment & Send Receipt'),
+                      label: Text(isAdvance ? 'Record Advance Payment' : 'Record Payment & Send Receipt'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.seatAvailable,
                         foregroundColor: Colors.white,
@@ -175,6 +195,88 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                       },
                     ),
                   ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _openStudentHistoryModal(Map<String, dynamic> item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return FutureBuilder<Map<String, dynamic>>(
+          future: ApiService.getStudentFeeHistory(item['user_id']),
+          builder: (ctx, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 220,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final res = snapshot.data ?? {};
+            final List history = res['fee_history'] ?? [];
+            return Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '5-Month History: ${item['student_name']}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  history.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Center(child: Text('No payment history found.')),
+                        )
+                      : Flexible(
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: history.length,
+                            itemBuilder: (c, i) {
+                              final h = history[i];
+                              final bool isPaid = h['payment_status'] == 'paid';
+                              return ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  isPaid ? Icons.check_circle : Icons.error_outline,
+                                  color: isPaid ? Colors.green : Colors.red,
+                                ),
+                                title: Text(
+                                  'Cycle: ${h['month_year']} • ₹${(h['amount'] as num).toStringAsFixed(2)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  isPaid
+                                      ? 'Paid: ${h['paid_date']} (${h['payment_mode'] ?? 'Cash'}) • Receipt: ${h['receipt_no'] ?? 'N/A'}'
+                                      : 'Due Date: ${h['due_date']}',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                 ],
               ),
             );
@@ -353,15 +455,14 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
 
   Widget _buildFeeCard(Map<String, dynamic> item) {
     final status = item['payment_status'] ?? 'pending';
-    Color statusColor = AppColors.seatPending;
-    String statusLabel = 'Pending';
+    final bool isAdvance = item['is_advance'] == true;
+    final String displayLabel = item['label'] ?? (status == 'paid' ? 'Paid' : status.toUpperCase());
 
+    Color statusColor = AppColors.seatPending;
     if (status == 'paid') {
       statusColor = AppColors.seatAvailable;
-      statusLabel = 'Paid';
     } else if (status == 'overdue') {
       statusColor = AppColors.seatOccupied;
-      statusLabel = 'Overdue';
     }
 
     return Card(
@@ -390,7 +491,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     border: Border.all(color: statusColor, width: 1),
                   ),
                   child: Text(
-                    statusLabel.toUpperCase(),
+                    displayLabel,
                     style: TextStyle(
                       color: statusColor,
                       fontWeight: FontWeight.bold,
@@ -431,34 +532,45 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      status == 'paid'
-                          ? 'Paid Date: ${item['paid_date'] ?? 'N/A'}'
-                          : 'Due Date: ${item['due_date'] ?? 'N/A'}',
+                      'Next Due: ${item['due_date'] ?? 'N/A'}',
                       style: TextStyle(
                         fontSize: 11,
                         color: status == 'overdue' ? Colors.red : Colors.grey.shade600,
                       ),
                     ),
-                    if (item['receipt_no'] != null)
+                    if (item['month_year_label'] != null)
                       Text(
-                        'Receipt: ${item['receipt_no']}',
+                        'Cycle: ${item['month_year_label']}',
                         style: const TextStyle(fontSize: 11, color: AppColors.primaryIndigo, fontWeight: FontWeight.w600),
                       ),
                   ],
                 ),
 
-                if (status != 'paid')
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.add_card, size: 16),
-                    label: const Text('Record'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.seatAvailable,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.history, size: 14),
+                      label: const Text('History'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        textStyle: const TextStyle(fontSize: 11),
+                      ),
+                      onPressed: () => _openStudentHistoryModal(item),
                     ),
-                    onPressed: () => _openRecordPaymentModal(item),
-                  ),
+                    const SizedBox(width: 6),
+                    ElevatedButton.icon(
+                      icon: Icon(isAdvance ? Icons.forward_5 : Icons.add_card, size: 14),
+                      label: Text(isAdvance ? 'Advance' : 'Collect'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isAdvance ? Colors.blue.shade700 : AppColors.seatAvailable,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () => _openRecordPaymentModal(item),
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
