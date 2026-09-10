@@ -110,14 +110,18 @@ class _StudentFeeScreenState extends State<StudentFeeScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 4),
+                                      if (item['due_date'] != null)
+                                        Text(
+                                          'Cycle Due Date: ${item['due_date']}',
+                                          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+                                        ),
                                       if (isPaid) ...[
-                                        Text('Paid Date: ${item['paid_date']} via ${item['payment_mode'] ?? 'Cash'}'),
+                                        Text('Paid On: ${item['paid_date'] ?? 'N/A'} via ${item['payment_mode'] ?? 'Cash'}'),
                                         Text(
                                           'Receipt No: ${item['receipt_no'] ?? 'N/A'}',
                                           style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryIndigo),
                                         ),
                                       ] else ...[
-                                        Text('Due Date: ${item['due_date']}'),
                                         Text(
                                           'Status: ${status.toUpperCase()}',
                                           style: TextStyle(color: status == 'overdue' ? Colors.red : Colors.orange, fontWeight: FontWeight.bold),

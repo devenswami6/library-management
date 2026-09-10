@@ -369,6 +369,16 @@ try {
         $alloc = $stmt_alloc->fetch();
         $start_date = $alloc['start_date'] ?? date('Y-m-d');
 
+        // Check if submitted month_year is empty OR already paid
+        if (!empty($month_year)) {
+            $stmt_check = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ? AND payment_status = 'paid'");
+            $stmt_check->execute([$allocation_id, $month_year]);
+            if ($stmt_check->fetch()) {
+                // Submitted month is already paid, clear it so fee_status calculates next unpaid cycle
+                $month_year = '';
+            }
+        }
+
         if (empty($month_year)) {
             $fee_status = get_student_fee_status($pdo, $allocation_id, $start_date);
             $month_year = $fee_status['target_month'];
