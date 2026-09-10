@@ -231,11 +231,12 @@ try {
         $stmt_pay = $pdo->prepare("
             SELECT fp.*, s.seat_number, sh.name as shift_name
             FROM fee_payments fp
-            JOIN allocations a ON fp.allocation_id = a.id
-            JOIN seats s ON a.seat_id = s.id
-            JOIN shifts sh ON a.shift_id = sh.id
+            LEFT JOIN allocations a ON fp.allocation_id = a.id
+            LEFT JOIN seats s ON a.seat_id = s.id
+            LEFT JOIN shifts sh ON a.shift_id = sh.id
             WHERE fp.user_id = ?
-            ORDER BY fp.id DESC
+            ORDER BY fp.due_date DESC, fp.id DESC
+            LIMIT 12
         ");
         $stmt_pay->execute([$user_id]);
         $payments = $stmt_pay->fetchAll();

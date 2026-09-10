@@ -430,6 +430,54 @@ try {
         ]);
         exit();
 
+    } elseif ($action === 'get_student_fee_history') {
+        $student_id = (int)($_GET['user_id'] ?? $_POST['user_id'] ?? 0);
+        $stmt_pay = $pdo->prepare("
+            SELECT fp.*, s.seat_number, sh.name as shift_name
+            FROM fee_payments fp
+            LEFT JOIN allocations a ON fp.allocation_id = a.id
+            LEFT JOIN seats s ON a.seat_id = s.id
+            LEFT JOIN shifts sh ON a.shift_id = sh.id
+            WHERE fp.user_id = ?
+            ORDER BY fp.due_date DESC, fp.id DESC
+            LIMIT 12
+        ");
+        $stmt_pay->execute([$student_id]);
+        $payments = $stmt_pay->fetchAll();
+
+        echo json_encode([
+            'success' => true,
+            'fee_history' => $payments
+        ]);
+        exit();
+
+    } elseif ($action === 'backup_db' || $action === 'get_database_backup_info') {
+        $db_file = __DIR__ . '/../library.db';
+        if (!file_exists($db_file)) {
+            echo json_encode(['success' => false, 'message' => 'Database file not found.']);
+            exit();
+        }
+
+        $tables = ['users', 'allocations', 'seats', 'shifts', 'attendance', 'fee_payments', 'complaints', 'notifications', 'chat_messages'];
+        $counts = [];
+        foreach ($tables as $t) {
+            try {
+                $counts[$t] = (int)$pdo->query("SELECT COUNT(*) FROM $t")->fetchColumn();
+            } catch (Exception $e) {
+                $counts[$t] = 0;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'filename' => "library_backup_" . date('Y-m-d_H-i-s') . ".sqlite",
+            'db_size_bytes' => filesize($db_file),
+            'db_size_formatted' => round(filesize($db_file) / 1024, 2) . " KB",
+            'table_counts' => $counts,
+            'backup_url' => ApiConfig::$baseUrl . "/api/admin_actions.php?action=backup_db"
+        ]);
+        exit();
+
     } elseif ($action === 'get_admin_chat_threads') {
         try {
             $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");

@@ -1087,7 +1087,7 @@ $active_tab = $_GET['tab'] ?? 'seatmap';
 <div id="modalRecordPayment" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <h3><i class="fas fa-cash-register"></i> Record Monthly Fee Collection</h3>
+            <h3 id="payModalTitle"><i class="fas fa-cash-register"></i> Record Monthly Fee Collection</h3>
             <button class="modal-close">&times;</button>
         </div>
         <form action="api/admin_actions.php" method="POST">
@@ -1129,11 +1129,11 @@ $active_tab = $_GET['tab'] ?? 'seatmap';
     </div>
 </div>
 
-<!-- MODAL: STUDENT FEE HISTORY (LAST 5 MONTHS) -->
+<!-- MODAL: STUDENT FEE HISTORY (LAST 12 MONTHS) -->
 <div id="modalStudentHistory" class="modal-overlay">
-    <div class="modal-content" style="max-width: 650px;">
+    <div class="modal-content" style="max-width: 700px;">
         <div class="modal-header">
-            <h3><i class="fas fa-history"></i> Fee History (Last 5 Months) - <span id="histStudentName">Student</span></h3>
+            <h3><i class="fas fa-history"></i> Fee History (Last 12 Months) - <span id="histStudentName">Student</span></h3>
             <button class="modal-close">&times;</button>
         </div>
         <div id="histModalContent" style="padding: 10px 0;">
@@ -1238,8 +1238,19 @@ function openPaymentModal(allocationId, userId, studentName, amount, monthYear) 
     document.getElementById('payUserId').value = userId;
     document.getElementById('payStudentName').value = studentName;
     document.getElementById('payAmount').value = amount;
+    
+    const nowMonthStr = new Date().toISOString().slice(0, 7);
+    const titleElem = document.getElementById('payModalTitle');
+    
     if (monthYear) {
         document.getElementById('payMonthYear').value = monthYear;
+        if (monthYear > nowMonthStr) {
+            titleElem.innerHTML = `<i class="fas fa-forward" style="color:#0284c7;"></i> Record Advance Fee Collection (${monthYear})`;
+        } else {
+            titleElem.innerHTML = `<i class="fas fa-cash-register"></i> Record Monthly Fee Collection (${monthYear})`;
+        }
+    } else {
+        titleElem.innerHTML = `<i class="fas fa-cash-register"></i> Record Monthly Fee Collection`;
     }
     openModal('modalRecordPayment');
 }
@@ -1247,7 +1258,7 @@ function openPaymentModal(allocationId, userId, studentName, amount, monthYear) 
 function openStudentHistoryModal(userId, studentName) {
     document.getElementById('histStudentName').innerText = studentName;
     const container = document.getElementById('histModalContent');
-    container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 15px;"><i class="fas fa-spinner fa-spin"></i> Loading 5-month payment history...</p>';
+    container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 15px;"><i class="fas fa-spinner fa-spin"></i> Loading 12-month payment history...</p>';
     openModal('modalStudentHistory');
 
     fetch(`api/json_admin_actions.php?action=get_student_fee_history&user_id=${userId}`)
@@ -1255,12 +1266,18 @@ function openStudentHistoryModal(userId, studentName) {
         .then(data => {
             if (data.success && data.fee_history && data.fee_history.length > 0) {
                 let html = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Found ${data.fee_history.length} payment records in the last 12 months</span>
+                        <a href="receipt_statement.php?user_id=${userId}" target="_blank" class="btn btn-primary btn-sm">
+                            <i class="fas fa-file-pdf"></i> Download PDF / Print 12-Mo Statement
+                        </a>
+                    </div>
                     <div class="table-responsive">
                         <table class="custom-table" style="font-size: 0.85rem;">
                             <thead>
                                 <tr>
-                                    <th>Month</th>
-                                    <th>Amount</th>
+                                    <th>Cycle Month</th>
+                                    <th>Fee Amount</th>
                                     <th>Paid Date</th>
                                     <th>Mode</th>
                                     <th>Receipt</th>
@@ -1270,10 +1287,15 @@ function openStudentHistoryModal(userId, studentName) {
                 `;
                 data.fee_history.forEach(p => {
                     const isPaid = p.payment_status === 'paid';
+                    const isAdvance = p.month_year > new Date().toISOString().slice(0, 7);
                     const badgeClass = isPaid ? 'badge-success' : (p.payment_status === 'overdue' ? 'badge-danger' : 'badge-warning');
+                    
                     html += `
                         <tr>
-                            <td><strong>${p.month_year}</strong></td>
+                            <td>
+                                <strong>${p.month_year}</strong>
+                                ${isAdvance ? '<span class="badge badge-info" style="font-size:0.65rem; margin-left:4px;">ADVANCE</span>' : ''}
+                            </td>
                             <td>₹${parseFloat(p.amount).toFixed(2)}</td>
                             <td>${p.paid_date ? p.paid_date : '<span style="color:var(--text-muted);">Unpaid</span>'}</td>
                             <td>${p.payment_mode || 'N/A'}</td>
@@ -1288,7 +1310,7 @@ function openStudentHistoryModal(userId, studentName) {
                 html += `</tbody></table></div>`;
                 container.innerHTML = html;
             } else {
-                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No payment history found for the last 5 months.</p>';
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No payment history found for the last 12 months.</p>';
             }
         })
         .catch(err => {

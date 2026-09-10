@@ -25,10 +25,10 @@ if ($allocation) {
     $fee_info = get_student_fee_status($pdo, $allocation['id'], $allocation['start_date']);
 }
 
-// Fetch Fee History (Last 5 Months)
+// Fetch Fee History (Last 12 Months)
 $payments = [];
 if ($user) {
-    $stmt_pay = $pdo->prepare("SELECT * FROM fee_payments WHERE user_id = ? ORDER BY due_date DESC, id DESC LIMIT 5");
+    $stmt_pay = $pdo->prepare("SELECT * FROM fee_payments WHERE user_id = ? ORDER BY due_date DESC, id DESC LIMIT 12");
     $stmt_pay->execute([$user['id']]);
     $payments = $stmt_pay->fetchAll();
 }
@@ -244,10 +244,17 @@ $active_tab = $_GET['tab'] ?? 'tabSeatInfo';
 
     <!-- TAB 3: MONTHLY FEE LEDGER -->
     <div id="tabFees" class="tab-pane <?php echo $active_tab === 'tabFees' ? 'active' : ''; ?>">
-        <h3><i class="fas fa-file-invoice" style="color: var(--accent-primary);"></i> Monthly Fee Renewal Schedule</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
-            Your monthly fee renewal date recurs on the <strong><?php echo $allocation ? date('jS', strtotime($allocation['start_date'])) : '1st'; ?> of every month</strong>.
-        </p>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 16px;">
+            <div>
+                <h3><i class="fas fa-file-invoice" style="color: var(--accent-primary);"></i> Monthly Fee Schedule & 12-Month History</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                    Your monthly fee renewal date recurs on the <strong><?php echo $allocation ? date('jS', strtotime($allocation['start_date'])) : '1st'; ?> of every month</strong>.
+                </p>
+            </div>
+            <a href="receipt_statement.php" target="_blank" class="btn btn-secondary btn-sm">
+                <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Download 12-Month PDF Statement
+            </a>
+        </div>
 
         <div class="table-responsive">
             <table class="custom-table">
