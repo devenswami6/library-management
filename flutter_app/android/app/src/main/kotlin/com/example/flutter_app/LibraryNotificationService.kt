@@ -37,29 +37,50 @@ class LibraryNotificationService : Service() {
         const val KEY_SHOWN_IDS = "shown_ids"
 
         fun startService(context: Context, userId: Int, baseUrl: String) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putInt(KEY_USER_ID, userId)
-                .putString(KEY_BASE_URL, baseUrl)
-                .apply()
+            try {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putInt(KEY_USER_ID, userId)
+                    .putString(KEY_BASE_URL, baseUrl)
+                    .apply()
 
-            val intent = Intent(context, LibraryNotificationService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+                val intent = Intent(context, LibraryNotificationService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    try {
+                        context.startForegroundService(intent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        try {
+                            context.startService(intent)
+                        } catch (ex: Exception) {
+                            ex.printStackTrace()
+                        }
+                    }
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
         fun stopService(context: Context) {
-            val intent = Intent(context, LibraryNotificationService::class.java)
-            context.stopService(intent)
+            try {
+                val intent = Intent(context, LibraryNotificationService::class.java)
+                context.stopService(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannels()
+        try {
+            createNotificationChannels()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun getAppIconRes(): Int {
@@ -68,15 +89,35 @@ class LibraryNotificationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID_FOREGROUND)
-            .setContentTitle("Self-Study Library")
-            .setContentText("Active Attendance & Geofence Guard")
-            .setSmallIcon(getAppIconRes())
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setOngoing(true)
-            .build()
+        try {
+            val notification = NotificationCompat.Builder(this, CHANNEL_ID_FOREGROUND)
+                .setContentTitle("Self-Study Library")
+                .setContentText("Active Attendance & Geofence Guard")
+                .setSmallIcon(getAppIconRes())
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setOngoing(true)
+                .build()
 
-        startForeground(NOTIF_ID_FOREGROUND, notification)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try {
+                    startForeground(
+                        NOTIF_ID_FOREGROUND,
+                        notification,
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                    )
+                } catch (e: Exception) {
+                    try {
+                        startForeground(NOTIF_ID_FOREGROUND, notification)
+                    } catch (ex: Exception) {
+                        ex.printStackTrace()
+                    }
+                }
+            } else {
+                startForeground(NOTIF_ID_FOREGROUND, notification)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         if (!isRunning) {
             isRunning = true
@@ -210,31 +251,39 @@ class LibraryNotificationService : Service() {
     }
 
     private fun checkBackgroundGeofenceStatus(baseUrl: String, userId: Int) {
-        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                           locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-
-        if (!isGpsEnabled) {
-            // Anti-Cheat: GPS is OFF while student is checked in!
-            lastAutoCheckoutTime = System.currentTimeMillis()
-            performAutoCheckout(baseUrl, userId, "GPS Location was turned OFF on your phone while checked-in.")
-            return
-        }
-
-        // Fetch location and check 50m radius
-        val location = getLastKnownLocation(locationManager)
-        if (location != null) {
-            val targetLat = 28.0087395
-            val targetLng = 73.2924508
-            val results = FloatArray(1)
-            Location.distanceBetween(location.latitude, location.longitude, targetLat, targetLng, results)
-            val distanceMeters = results[0]
-
-            if (distanceMeters > 50.0f) {
-                lastAutoCheckoutTime = System.currentTimeMillis()
-                val distStr = if (distanceMeters > 1000) String.format("%.2f km", distanceMeters / 1000) else String.format("%.1f meters", distanceMeters)
-                performAutoCheckout(baseUrl, userId, "You moved $distStr away from Keshav Library (50m limit).")
+        try {
+            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val isGpsEnabled = try {
+                locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            } catch (e: Exception) {
+                false
             }
+
+            if (!isGpsEnabled) {
+                // Anti-Cheat: GPS is OFF while student is checked in!
+                lastAutoCheckoutTime = System.currentTimeMillis()
+                performAutoCheckout(baseUrl, userId, "GPS Location was turned OFF on your phone while checked-in.")
+                return
+            }
+
+            // Fetch location and check 50m radius
+            val location = getLastKnownLocation(locationManager)
+            if (location != null) {
+                val targetLat = 28.0087395
+                val targetLng = 73.2924508
+                val results = FloatArray(1)
+                Location.distanceBetween(location.latitude, location.longitude, targetLat, targetLng, results)
+                val distanceMeters = results[0]
+
+                if (distanceMeters > 50.0f) {
+                    lastAutoCheckoutTime = System.currentTimeMillis()
+                    val distStr = if (distanceMeters > 1000) String.format("%.2f km", distanceMeters / 1000) else String.format("%.1f meters", distanceMeters)
+                    performAutoCheckout(baseUrl, userId, "You moved $distStr away from Keshav Library (50m limit).")
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
