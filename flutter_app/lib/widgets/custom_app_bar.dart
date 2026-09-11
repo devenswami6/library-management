@@ -30,9 +30,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
       ),
-      elevation: 2,
+      backgroundColor: AppColors.primaryIndigo,
+      iconTheme: const IconThemeData(color: Colors.white),
+      elevation: 0,
       bottom: bottom,
       actions: [
         // Notification Bell Icon with Badge
@@ -40,8 +42,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           alignment: Alignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_none_rounded),
-              onPressed: onNotificationTap,
+              icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+              onPressed: onNotificationTap ?? () => Navigator.of(context).pushNamed('/notification_hub'),
             ),
             if (unreadNotifications > 0)
               Positioned(
@@ -65,11 +67,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
           ],
         ),
-        // Theme Mode Switcher (Light / Dark)
+        // Theme Switcher
         IconButton(
           icon: Icon(
-            themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-            color: themeProvider.isDarkMode ? Colors.amber : AppColors.primaryBlue,
+            themeProvider.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            color: Colors.white,
           ),
           onPressed: () {
             themeProvider.toggleTheme(!themeProvider.isDarkMode);
@@ -77,7 +79,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         // Logout Button
         IconButton(
-          icon: const Icon(Icons.logout_rounded),
+          icon: const Icon(Icons.logout_rounded, color: Colors.white),
           onPressed: () {
             authProvider.logout();
             Provider.of<AttendanceProvider>(context, listen: false).reset();

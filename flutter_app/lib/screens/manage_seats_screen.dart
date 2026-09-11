@@ -5,6 +5,7 @@ import '../models/seat_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/seat_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_app_bar.dart';
 
 class ManageSeatsScreen extends StatefulWidget {
   const ManageSeatsScreen({Key? key}) : super(key: key);
@@ -47,11 +48,15 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
     final res = await ApiService.bulkCreateSeats(rowLabel, startNum, endNum, formatDigits: _digitsFormat);
     setState(() => _isSubmitting = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(res['message'] ?? 'Created seats')),
-    );
-
-    _loadSeats();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Desks created successfully!'),
+          backgroundColor: AppColors.statusSuccess,
+        ),
+      );
+      _loadSeats();
+    }
   }
 
   void _handleDeleteSeat(SeatModel seat) async {
@@ -73,33 +78,35 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
 
     if (confirm == true) {
       final res = await ApiService.deleteSeat(seat.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res['message'] ?? 'Deleted')),
-      );
-      _loadSeats();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res['message'] ?? 'Deleted')),
+        );
+        _loadSeats();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final seatProvider = Provider.of<SeatProvider>(context);
     final allSeatList = <SeatModel>[];
     seatProvider.seatRows.values.forEach((list) => allSeatList.addAll(list));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Study Desks & Range'),
-      ),
+      appBar: const CustomAppBar(title: 'Manage Study Desks'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Bulk Range Creator Card
+              // 1-Click Range Seat Creator Card (Matching Screen 7)
               Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                color: isDark ? AppColors.darkCard : Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -107,18 +114,13 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.auto_awesome, color: AppColors.seatAvailable),
+                          Icon(Icons.auto_awesome_rounded, color: AppColors.primaryIndigo),
                           SizedBox(width: 8),
                           Text(
                             '1-Click Range Seat Creator',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Generate 10 to 50 desks instantly (e.g. Row E: 01 to 10)',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                       const SizedBox(height: 14),
 
@@ -130,7 +132,8 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
                               controller: _rowController,
                               textCapitalization: TextCapitalization.characters,
                               decoration: const InputDecoration(
-                                labelText: 'Row Letter',
+                                labelText: 'Row Label',
+                                hintText: 'E',
                                 border: OutlineInputBorder(),
                               ),
                             ),
@@ -143,6 +146,7 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
                                 labelText: 'Start No.',
+                                hintText: '1',
                                 border: OutlineInputBorder(),
                               ),
                             ),
@@ -155,6 +159,7 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
                                 labelText: 'End No.',
+                                hintText: '10',
                                 border: OutlineInputBorder(),
                               ),
                             ),
@@ -174,17 +179,22 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
                           if (val != null) setState(() => _digitsFormat = val);
                         },
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
-                      ElevatedButton.icon(
-                        onPressed: _isSubmitting ? null : _handleBulkCreate,
-                        icon: const Icon(Icons.flash_on),
-                        label: Text('⚡ GENERATE RANGE (${_rowController.text.toUpperCase()}-${_startController.text.padLeft(_digitsFormat, '0')} to ${_rowController.text.toUpperCase()}-${_endController.text.padLeft(_digitsFormat, '0')})'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.seatAvailable,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          minimumSize: const Size(double.infinity, 48),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: _isSubmitting ? null : _handleBulkCreate,
+                          icon: const Icon(Icons.flash_on_rounded, color: Colors.white),
+                          label: Text(
+                            'Generate Range (${_rowController.text.toUpperCase()}-${_startController.text.padLeft(_digitsFormat, '0')} to ${_rowController.text.toUpperCase()}-${_endController.text.padLeft(_digitsFormat, '0')})',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryIndigo,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ),
                     ],
@@ -195,14 +205,14 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
 
               Text(
                 'Existing Study Desks (${allSeatList.length})',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
 
               if (seatProvider.isLoading)
-                const Center(child: CircularProgressIndicator())
+                const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
               else if (allSeatList.isEmpty)
-                const Center(child: Text('No seats created yet.'))
+                const Center(child: Text('No seats created yet.', style: TextStyle(color: Colors.grey)))
               else
                 ListView.builder(
                   shrinkWrap: true,
@@ -213,9 +223,12 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
                     return Card(
                       elevation: 1,
                       margin: const EdgeInsets.only(bottom: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      color: isDark ? AppColors.darkCard : Colors.white,
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppColors.primaryIndigo.withOpacity(0.15),
+                          radius: 18,
+                          backgroundColor: AppColors.primaryIndigo.withOpacity(0.12),
                           child: Text(
                             seat.rowLabel,
                             style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryIndigo),
@@ -223,11 +236,11 @@ class _ManageSeatsScreenState extends State<ManageSeatsScreen> {
                         ),
                         title: Text(
                           'Desk ${seat.seatNumber}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                         ),
-                        subtitle: Text('Row Label: ${seat.rowLabel}'),
+                        subtitle: Text('Row Label: ${seat.rowLabel}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_forever, color: Colors.red),
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
                           onPressed: () => _handleDeleteSeat(seat),
                         ),
                       ),

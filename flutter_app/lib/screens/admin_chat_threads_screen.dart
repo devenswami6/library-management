@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_app_bar.dart';
 import 'admin_chat_conversation_screen.dart';
 
 class AdminChatThreadsScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
   List<dynamic> _filteredThreads = [];
   final TextEditingController _searchController = TextEditingController();
   Timer? _pollingTimer;
+  String _chatFilter = 'all'; // all, unread, resolved
 
   @override
   void initState() {
@@ -57,16 +59,19 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
 
   void _applySearch() {
     final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) {
-      _filteredThreads = List.from(_threads);
-    } else {
+    setState(() {
       _filteredThreads = _threads.where((t) {
         final name = (t['student_name'] ?? '').toString().toLowerCase();
         final phone = (t['student_phone'] ?? '').toString().toLowerCase();
         final desk = (t['seat_number'] ?? '').toString().toLowerCase();
-        return name.contains(query) || phone.contains(query) || desk.contains(query);
+        final unread = Convert.toInt(t['unread_count']);
+
+        final matchesSearch = query.isEmpty || name.contains(query) || phone.contains(query) || desk.contains(query);
+        final matchesFilter = _chatFilter == 'all' || (_chatFilter == 'unread' && unread > 0) || (_chatFilter == 'resolved' && unread == 0);
+
+        return matchesSearch && matchesFilter;
       }).toList();
-    }
+    });
   }
 
   String _formatTime(String rawDate) {
@@ -88,60 +93,66 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Student Support Chats 💬'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _fetchThreads(),
-          ),
-        ],
-      ),
+      appBar: const CustomAppBar(title: 'Student Support Chats 💬'),
       body: Column(
         children: [
-          // Search box
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (_) => setState(() => _applySearch()),
-              decoration: InputDecoration(
-                hintText: 'Search student name, phone or seat desk...',
-                prefixIcon: const Icon(Icons.search),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                filled: true,
-                fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+          // Header Search Bar & Filter Chips (Matching Screen 15)
+          Container(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            padding: const EdgeInsets.all(14.0),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  onChanged: (_) => _applySearch(),
+                  decoration: InputDecoration(
+                    hintText: 'Search student name or phone...',
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryIndigo),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Unread 🔴', 'unread'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Resolved 🟢', 'resolved'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
 
+          // Thread List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
                 : _filteredThreads.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.mark_chat_unread_outlined, size: 54, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
+                          children: const [
+                            Icon(Icons.mark_chat_unread_outlined, size: 54, color: Colors.grey),
+                            SizedBox(height: 12),
+                            Text(
                               'No student conversations found.',
-                              style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 15, color: Colors.grey, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                       )
                     : RefreshIndicator(
                         onRefresh: () => _fetchThreads(),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        color: AppColors.primaryIndigo,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(14),
                           itemCount: _filteredThreads.length,
-                          separatorBuilder: (ctx, i) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final item = _filteredThreads[index];
                             final studentId = Convert.toInt(item['student_id']);
@@ -153,16 +164,20 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
                             final unread = Convert.toInt(item['unread_count']);
 
                             return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              elevation: 1,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              margin: const EdgeInsets.only(bottom: 10),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              color: isDark ? AppColors.darkCard : Colors.white,
                               child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                 leading: CircleAvatar(
-                                  backgroundColor: AppColors.primaryIndigo.withOpacity(0.15),
+                                  radius: 22,
+                                  backgroundColor: AppColors.primaryIndigo.withOpacity(0.12),
                                   child: Text(
                                     studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 18,
                                       color: AppColors.primaryIndigo,
                                     ),
                                   ),
@@ -180,63 +195,45 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    if (desk.isNotEmpty)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.seatAvailable.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          'Desk: $desk',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.seatAvailable,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                subtitle: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        lastMsg,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: unread > 0
-                                              ? (isDark ? Colors.white : Colors.black87)
-                                              : Colors.grey,
-                                          fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
-                                        ),
-                                      ),
-                                    ),
-                                    if (lastTime.isNotEmpty) ...[
-                                      const SizedBox(width: 6),
+                                    if (lastTime.isNotEmpty)
                                       Text(
                                         lastTime,
                                         style: const TextStyle(fontSize: 11, color: Colors.grey),
                                       ),
-                                    ],
                                   ],
                                 ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    lastMsg,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: unread > 0
+                                          ? (isDark ? Colors.white : Colors.black87)
+                                          : Colors.grey,
+                                      fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
                                 trailing: unread > 0
-                                    ? CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.redAccent,
+                                    ? Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.redAccent,
+                                          shape: BoxShape.circle,
+                                        ),
                                         child: Text(
                                           '$unread',
                                           style: const TextStyle(
-                                            fontSize: 10,
+                                            fontSize: 11,
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       )
-                                    : const Icon(Icons.chevron_right, color: Colors.grey),
+                                    : const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
                                 onTap: () async {
                                   await Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -258,6 +255,29 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _chatFilter == value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AppColors.primaryIndigo,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.grey.shade200,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        fontSize: 13,
+      ),
+      onSelected: (val) {
+        if (val) {
+          setState(() => _chatFilter = value);
+          _applySearch();
+        }
+      },
     );
   }
 }

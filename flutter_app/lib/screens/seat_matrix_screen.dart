@@ -5,6 +5,7 @@ import '../models/seat_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/seat_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/seat_grid_view.dart';
 
 class SeatMatrixScreen extends StatefulWidget {
@@ -43,34 +44,48 @@ class _SeatMatrixScreenState extends State<SeatMatrixScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.chair, color: AppColors.primaryIndigo),
+            const Icon(Icons.event_seat_rounded, color: AppColors.primaryIndigo),
             const SizedBox(width: 8),
-            Text('Seat Desk ${seat.seatNumber}'),
+            Text('Desk ${seat.seatNumber} Details'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Row Label: ${seat.rowLabel}'),
+            Text('Row Label: ${seat.rowLabel}', style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 6),
-            Text('Status: ${seat.status.toUpperCase()}',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: seat.status == 'booked'
-                        ? AppColors.seatOccupied
-                        : AppColors.seatAvailable)),
+            Row(
+              children: [
+                const Text('Status: ', style: TextStyle(fontSize: 14)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: seat.status == 'booked' ? AppColors.statusDangerBg : AppColors.statusSuccessBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    seat.status.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: seat.status == 'booked' ? AppColors.statusDanger : AppColors.statusSuccess,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             if (isAdmin && seat.studentName != null) ...[
-              const Divider(),
-              Text('Student Name: ${seat.studentName}',
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (seat.studentPhone != null) Text('Phone: ${seat.studentPhone}'),
+              const Divider(height: 20),
+              Text('Student Name: ${seat.studentName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              if (seat.studentPhone != null) Text('Phone: ${seat.studentPhone}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
             ] else if (!isAdmin) ...[
               const SizedBox(height: 8),
               const Text(
-                'Note: Student personal details are hidden for privacy. Only Admin can allot seats.',
+                'Note: Student details are kept private for security.',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
@@ -91,48 +106,46 @@ class _SeatMatrixScreenState extends State<SeatMatrixScreen> {
     final user = Provider.of<AuthProvider>(context).currentUser;
     final seatProvider = Provider.of<SeatProvider>(context);
     final isAdmin = user?.role == 'admin';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Visual Seat Matrix Grid'),
-      ),
+      appBar: const CustomAppBar(title: 'Visual Seat Matrix Grid'),
       body: SafeArea(
         child: Column(
           children: [
-            // Shift Selector Tab Header
+            // Shift Selector Card Header (Matching Screen 6 Dropdown)
             if (!_isLoadingShifts && _shifts.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                color: AppColors.primaryIndigo.withOpacity(0.08),
+                padding: const EdgeInsets.all(12),
+                color: isDark ? AppColors.darkCard : Colors.white,
                 child: Row(
                   children: [
-                    const Text('Select Shift: ',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Select Shift: ',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: _shifts.map((shift) {
-                            final isSelected =
-                                seatProvider.selectedShiftId == shift['id'];
+                            final isSelected = seatProvider.selectedShiftId == shift['id'];
                             return Padding(
                               padding: const EdgeInsets.only(right: 8.0),
                               child: ChoiceChip(
-                                label: Text(
-                                    '${shift['name']} (${shift['start_time']} - ${shift['end_time']})'),
+                                label: Text('${shift['name']} (${shift['start_time']} - ${shift['end_time']})'),
                                 selected: isSelected,
                                 selectedColor: AppColors.primaryIndigo,
+                                backgroundColor: isDark ? AppColors.darkBg : Colors.grey.shade200,
                                 labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.black,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                                  color: isSelected ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  fontSize: 13,
                                 ),
                                 onSelected: (val) {
                                   if (val) {
-                                    seatProvider.changeShift(
-                                        shift['id'], user?.id ?? 0);
+                                    seatProvider.changeShift(shift['id'], user?.id ?? 0);
                                   }
                                 },
                               ),
@@ -145,19 +158,18 @@ class _SeatMatrixScreenState extends State<SeatMatrixScreen> {
                 ),
               ),
 
-            // Seat Matrix Body
+            // Seat Grid Body (Matching Screen 6)
             Expanded(
               child: seatProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
                   : RefreshIndicator(
-                      onRefresh: () async =>
-                          seatProvider.fetchSeatMatrix(user?.id ?? 0),
+                      onRefresh: () async => seatProvider.fetchSeatMatrix(user?.id ?? 0),
+                      color: AppColors.primaryIndigo,
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.all(16.0),
                         child: SeatGridView(
                           seatRows: seatProvider.seatRows,
-                          onSeatTap: (seat) =>
-                              _showSeatDetailsDialog(seat, isAdmin),
+                          onSeatTap: (seat) => _showSeatDetailsDialog(seat, isAdmin),
                         ),
                       ),
                     ),

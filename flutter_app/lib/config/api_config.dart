@@ -11,13 +11,13 @@ class ApiConfig {
 }
 
 class AppColors {
-  // Concept B Primary SaaS Indigo Palette
-  static const Color primaryIndigo = Color(0xFF6366F1); // Royal Indigo / Violet
-  static const Color primaryBlue = Color(0xFF4F46E5);   // Deep Indigo Accent
-  static const Color accentCyan = Color(0xFF0EA5E9);    // Sky Blue Accent
-  static const Color accentViolet = Color(0xFF8B5CF6);  // Electric Violet
+  // Demo Theme Royal Blue / Deep Indigo Palette (#1D4ED8)
+  static const Color primaryIndigo = Color(0xFF1D4ED8); // Royal Blue Primary
+  static const Color primaryBlue = Color(0xFF1E40AF);   // Dark Royal Blue Header
+  static const Color accentCyan = Color(0xFF06B6D4);    // Cyan Metric Accent
+  static const Color accentViolet = Color(0xFF3B82F6);  // Bright Blue Accent
   
-  // Status Colors (Concept B SaaS Chips)
+  // Status Colors (Concept B & Demo Chips)
   static const Color statusSuccess = Color(0xFF22C55E); // Mint Emerald Green
   static const Color statusSuccessBg = Color(0xFFDCFCE7);
   static const Color statusWarning = Color(0xFFF59E0B); // Amber Gold
@@ -30,10 +30,10 @@ class AppColors {
   // Seat Matrix Specific
   static const Color seatAvailable = Color(0xFF22C55E); 
   static const Color seatOccupied = Color(0xFFEF4444);  
-  static const Color seatMyBooked = Color(0xFF6366F1);  
+  static const Color seatMyBooked = Color(0xFF1D4ED8);  
   static const Color seatPending = Color(0xFFF59E0B);   
 
-  // Light Mode Colors (Concept B Clean Surface)
+  // Light Mode Colors
   static const Color lightBg = Color(0xFFF8FAFC);
   static const Color lightCard = Color(0xFFFFFFFF);
   static const Color lightSurfaceElevated = Color(0xFFF1F5F9);

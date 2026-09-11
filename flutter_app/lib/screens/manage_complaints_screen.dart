@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_app_bar.dart';
 
 class ManageComplaintsScreen extends StatefulWidget {
   const ManageComplaintsScreen({Key? key}) : super(key: key);
@@ -12,7 +13,7 @@ class ManageComplaintsScreen extends StatefulWidget {
 class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
   bool _isLoading = true;
   List<dynamic> _allTickets = [];
-  String _filter = 'all'; // 'all', 'open', 'in_progress', 'resolved'
+  String _filter = 'open'; // 'all', 'open', 'in_progress', 'resolved'
 
   @override
   void initState() {
@@ -34,214 +35,258 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
 
   void _updateStatus(int complaintId, String newStatus) async {
     final res = await ApiService.updateComplaintStatus(complaintId, newStatus);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(res['message'] ?? 'Status updated')),
-    );
-    _loadTickets();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Ticket status updated.'),
+          backgroundColor: newStatus == 'resolved' ? AppColors.statusSuccess : AppColors.primaryIndigo,
+        ),
+      );
+      _loadTickets();
+    }
   }
 
   List<dynamic> get _filteredTickets {
     if (_filter == 'all') return _allTickets;
-    return _allTickets.where((t) => t['status'] == _filter).toList();
+    return _allTickets.where((t) => (t['status'] ?? 'open') == _filter).toList();
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color bg;
-    Color text;
-    String label;
+  // Ticket Details Modal (Matching Screen 18 Ticket Details)
+  void _showTicketDetailsModal(Map<String, dynamic> t) {
+    final int id = t['id'] is int ? t['id'] : int.parse(t['id'].toString());
+    final String name = t['student_name'] ?? 'Student';
+    final String phone = t['student_phone'] ?? '';
+    final String subj = t['subject'] ?? 'Support Request';
+    final String desc = t['description'] ?? '';
+    final String status = t['status'] ?? 'open';
+    final String priority = t['priority'] ?? 'Medium';
+    final String date = t['created_at'] ?? '2 hours ago';
 
-    if (status == 'resolved') {
-      bg = Colors.green.shade100;
-      text = Colors.green.shade800;
-      label = 'RESOLVED';
-    } else if (status == 'in_progress') {
-      bg = Colors.amber.shade100;
-      text = Colors.amber.shade900;
-      label = 'IN PROGRESS';
-    } else {
-      bg = Colors.red.shade100;
-      text = Colors.red.shade800;
-      label = 'OPEN';
-    }
+    Color priorityColor = const Color(0xFFF59E0B);
+    if (priority.toLowerCase() == 'high') priorityColor = AppColors.statusDanger;
+    if (priority.toLowerCase() == 'low') priorityColor = AppColors.statusSuccess;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 11),
-      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ticket #TKT-${id.toString().padLeft(3, '0')}',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text('Submitted: $date', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: priorityColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      priority,
+                      style: TextStyle(color: priorityColor, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+
+              Row(
+                children: [
+                  const Icon(Icons.person_rounded, size: 18, color: AppColors.primaryIndigo),
+                  const SizedBox(width: 8),
+                  Text('Student: $name ${phone.isNotEmpty ? "($phone)" : ""}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              const Text('Message / Request:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  desc.isNotEmpty ? desc : subj,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Row(
+                children: [
+                  const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(status.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: status == 'resolved' ? AppColors.statusSuccess : Colors.amber.shade800)),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+                  label: Text(
+                    status == 'resolved' ? 'Resolved' : 'Mark as Resolved',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryIndigo,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: status == 'resolved'
+                      ? null
+                      : () {
+                          Navigator.pop(ctx);
+                          _updateStatus(id, 'resolved');
+                        },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final tickets = _filteredTickets;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final int openCount = _allTickets.where((t) => t['status'] == 'open').length;
+    final int inProgCount = _allTickets.where((t) => t['status'] == 'in_progress').length;
+    final int resCount = _allTickets.where((t) => t['status'] == 'resolved').length;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Facility Support Tickets Desk'),
-      ),
+      appBar: const CustomAppBar(title: 'Support Tickets'),
       body: SafeArea(
         child: Column(
           children: [
-            // Filter Header Tabs
+            // Top Filter Chips Header (Matching Screen 17)
             Container(
-              color: AppColors.primaryIndigo.withOpacity(0.08),
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              color: isDark ? AppColors.darkCard : Colors.white,
+              padding: const EdgeInsets.all(12),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    ChoiceChip(
-                      label: Text('All (${_allTickets.length})'),
-                      selected: _filter == 'all',
-                      onSelected: (val) {
-                        if (val) setState(() => _filter = 'all');
-                      },
-                    ),
+                    _buildFilterChip('Open ($openCount)', 'open'),
                     const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: Text('Open (${_allTickets.where((t) => t['status'] == 'open').length})'),
-                      selected: _filter == 'open',
-                      selectedColor: Colors.red.shade400,
-                      labelStyle: TextStyle(color: _filter == 'open' ? Colors.white : Colors.black),
-                      onSelected: (val) {
-                        if (val) setState(() => _filter = 'open');
-                      },
-                    ),
+                    _buildFilterChip('In Progress ($inProgCount)', 'in_progress'),
                     const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: Text('In Progress (${_allTickets.where((t) => t['status'] == 'in_progress').length})'),
-                      selected: _filter == 'in_progress',
-                      selectedColor: Colors.amber.shade700,
-                      labelStyle: TextStyle(color: _filter == 'in_progress' ? Colors.white : Colors.black),
-                      onSelected: (val) {
-                        if (val) setState(() => _filter = 'in_progress');
-                      },
-                    ),
+                    _buildFilterChip('Resolved ($resCount)', 'resolved'),
                     const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: Text('Resolved (${_allTickets.where((t) => t['status'] == 'resolved').length})'),
-                      selected: _filter == 'resolved',
-                      selectedColor: Colors.green.shade600,
-                      labelStyle: TextStyle(color: _filter == 'resolved' ? Colors.white : Colors.black),
-                      onSelected: (val) {
-                        if (val) setState(() => _filter = 'resolved');
-                      },
-                    ),
+                    _buildFilterChip('All (${_allTickets.length})', 'all'),
                   ],
                 ),
               ),
             ),
 
-            // Tickets List
+            // Tickets List (Matching Screen 17)
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
                   : RefreshIndicator(
                       onRefresh: () async => _loadTickets(),
-                      child: tickets.isEmpty
-                          ? const Center(child: Text('No support tickets found for this filter.'))
+                      color: AppColors.primaryIndigo,
+                      child: _filteredTickets.isEmpty
+                          ? const Center(child: Text('No support tickets found for this filter.', style: TextStyle(color: Colors.grey)))
                           : ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: tickets.length + 1,
+                              padding: const EdgeInsets.all(14),
+                              itemCount: _filteredTickets.length,
                               itemBuilder: (ctx, idx) {
-                                if (idx == tickets.length) {
-                                  return Column(
-                                    children: const [
-                                      SizedBox(height: 20),
-                                      Center(
-                                        child: Text(
-                                          'Powered by Ramxonwebwork',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.primaryIndigo,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: 20),
-                                    ],
-                                  );
-                                }
-
-                                final t = tickets[idx];
+                                final t = _filteredTickets[idx];
                                 final int id = t['id'] is int ? t['id'] : int.parse(t['id'].toString());
                                 final String name = t['student_name'] ?? 'Student';
-                                final String phone = t['student_phone'] ?? '';
-                                final String cat = t['category'] ?? 'General';
-                                final String subj = t['subject'] ?? '';
-                                final String desc = t['description'] ?? '';
+                                final String subj = t['subject'] ?? 'Support Ticket';
                                 final String status = t['status'] ?? 'open';
-                                final String date = t['created_at'] ?? '';
+                                final String priority = t['priority'] ?? (id % 2 == 0 ? 'High' : 'Medium');
+                                final String date = t['created_at'] ?? 'Recently';
+
+                                Color pColor = const Color(0xFFF59E0B);
+                                if (priority.toLowerCase() == 'high') pColor = AppColors.statusDanger;
+                                if (priority.toLowerCase() == 'low') pColor = AppColors.statusSuccess;
 
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 12),
-                                  elevation: 3,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              '#TKT-${id.toString().padLeft(4, '0')} • $name',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  color: isDark ? AppColors.darkCard : Colors.white,
+                                  child: InkWell(
+                                    onTap: () => _showTicketDetailsModal(t),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(14.0),
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 20,
+                                            backgroundColor: pColor.withOpacity(0.15),
+                                            child: Icon(Icons.headset_mic_rounded, color: pColor, size: 20),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        subj,
+                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                      decoration: BoxDecoration(
+                                                        color: pColor.withOpacity(0.12),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Text(
+                                                        priority,
+                                                        style: TextStyle(color: pColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '#TKT-${id.toString().padLeft(3, '0')} • $name • $date',
+                                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                                ),
+                                              ],
                                             ),
-                                            _buildStatusBadge(status),
-                                          ],
-                                        ),
-                                        if (phone.isNotEmpty)
-                                          Text('Phone: $phone', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                        const SizedBox(height: 8),
-                                        Text(subj, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                        const SizedBox(height: 4),
-                                        Text(desc, style: const TextStyle(fontSize: 13)),
-                                        const SizedBox(height: 10),
-                                        Text('Submitted: $date', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                        const Divider(),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: [
-                                            const Text('Mark Status: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                            const SizedBox(width: 4),
-                                            OutlinedButton(
-                                              onPressed: status == 'open' ? null : () => _updateStatus(id, 'open'),
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: Colors.red,
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              ),
-                                              child: const Text('Open', style: TextStyle(fontSize: 11)),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            OutlinedButton(
-                                              onPressed: status == 'in_progress' ? null : () => _updateStatus(id, 'in_progress'),
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: Colors.amber.shade900,
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              ),
-                                              child: const Text('In Progress', style: TextStyle(fontSize: 11)),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            ElevatedButton(
-                                              onPressed: status == 'resolved' ? null : () => _updateStatus(id, 'resolved'),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.green,
-                                                foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              ),
-                                              child: const Text('Resolved', style: TextStyle(fontSize: 11)),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 );
@@ -252,6 +297,26 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _filter == value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AppColors.primaryIndigo,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.grey.shade200,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        fontSize: 13,
+      ),
+      onSelected: (val) {
+        if (val) setState(() => _filter = value);
+      },
     );
   }
 }
