@@ -238,6 +238,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final bool isAllotted = _dashboardData?['allocation'] != null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final String todayDateStr = DateFormat('EEE, d MMM yyyy').format(DateTime.now());
+
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Student Dashboard',
@@ -255,40 +257,126 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Welcome & Time Banner
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryBlue, AppColors.primaryIndigo],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome back, ${user?.name ?? "Student"}!',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                    // 1. Welcome & Date Header Card (Concept B)
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: isDark ? AppColors.darkCard : Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundColor: AppColors.primaryIndigo.withOpacity(0.12),
+                              child: Text(
+                                (user?.name ?? 'S')[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: AppColors.primaryIndigo,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Live Device Time: $_currentTime',
-                            style: const TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Welcome back,',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    user?.name ?? "Student",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "Let's make it a productive day!",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 12, color: AppColors.primaryIndigo),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    todayDateStr,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    // Card 1: My Desk Allotment Card
+                    // 2. Circular Quick Action Icons Grid (Concept B)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildConceptBQuickAction(
+                          context,
+                          icon: Icons.event_seat_rounded,
+                          label: 'My Seat',
+                          color: AppColors.primaryIndigo,
+                          onTap: () {},
+                        ),
+                        _buildConceptBQuickAction(
+                          context,
+                          icon: Icons.access_time_filled_rounded,
+                          label: 'Attendance',
+                          color: AppColors.statusSuccess,
+                          onTap: () {},
+                        ),
+                        _buildConceptBQuickAction(
+                          context,
+                          icon: Icons.account_balance_wallet_rounded,
+                          label: 'Fee Details',
+                          color: AppColors.statusWarning,
+                          onTap: () => Navigator.of(context).pushNamed('/student_fee'),
+                        ),
+                        _buildConceptBQuickAction(
+                          context,
+                          icon: Icons.headset_mic_rounded,
+                          label: 'Support',
+                          color: AppColors.accentCyan,
+                          onTap: () => Navigator.of(context).pushNamed('/support_tickets'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // 3. Assigned Seat Desk Card (Concept B)
                     Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: isDark ? AppColors.darkCard : Colors.white,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
@@ -297,14 +385,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: isAllotted
-                                    ? AppColors.seatAvailable.withOpacity(0.15)
-                                    : AppColors.seatPending.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(12),
+                                    ? AppColors.primaryIndigo.withOpacity(0.12)
+                                    : AppColors.statusWarning.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: Icon(
-                                Icons.event_seat,
-                                size: 36,
-                                color: isAllotted ? AppColors.seatAvailable : AppColors.seatPending,
+                                Icons.chair_rounded,
+                                size: 32,
+                                color: isAllotted ? AppColors.primaryIndigo : AppColors.statusWarning,
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -312,32 +400,65 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Assigned Seat Desk',
-                                    style: TextStyle(
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Assigned Seat',
+                                        style: TextStyle(
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: isAllotted ? AppColors.statusSuccessBg : AppColors.statusWarningBg,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.circle,
+                                              size: 8,
+                                              color: isAllotted ? AppColors.statusSuccess : AppColors.statusWarning,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              isAllotted ? 'Active' : 'Pending',
+                                              style: TextStyle(
+                                                color: isAllotted ? Colors.green.shade800 : Colors.amber.shade900,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                  const SizedBox(height: 2),
                                   Text(
                                     isAllotted
                                         ? 'DESK ${_dashboardData!['allocation']['seat_number']}'
                                         : 'Pending Allotment by Admin',
                                     style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: isAllotted ? AppColors.seatAvailable : AppColors.seatPending,
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w800,
+                                      color: isAllotted ? AppColors.primaryIndigo : AppColors.statusWarning,
                                     ),
                                   ),
-                                  if (isAllotted)
+                                  if (isAllotted) ...[
+                                    const SizedBox(height: 2),
                                     Text(
                                       'Shift: ${_dashboardData!['allocation']['shift_name']} (${_dashboardData!['allocation']['start_time']} - ${_dashboardData!['allocation']['end_time']})',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                                        color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
                                       ),
                                     ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -345,41 +466,60 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
-                    // Card 2: Attendance Logger (ONLY SHOW IF SEAT IS ALLOTTED!)
+                    // 4. Attendance Today Logger Card (Concept B)
                     if (isAllotted)
                       Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        color: isDark ? AppColors.darkCard : Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(
+                              Row(
                                 children: [
-                                  Icon(Icons.access_time_filled, color: AppColors.primaryIndigo),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Daily Attendance Logger',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  const Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryIndigo, size: 20),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Attendance Today',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
+                                          ? AppColors.statusSuccessBg
+                                          : AppColors.statusDangerBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      attProvider.todayAttendance?.isCurrentlyCheckedIn == true
+                                          ? 'Checked In'
+                                          : 'Not Checked In',
+                                      style: TextStyle(
+                                        color: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
+                                            ? Colors.green.shade800
+                                            : Colors.red.shade800,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              if (attProvider.todayAttendance != null) ...[
-                                Text(
-                                  'Check-in Time: ${attProvider.todayAttendance!.checkInTime ?? "N/A"}',
-                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Mark your presence for today (Live time: $_currentTime)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                 ),
-                                if (attProvider.todayAttendance!.checkOutTime != null)
-                                  Text(
-                                    'Check-out Time: ${attProvider.todayAttendance!.checkOutTime}',
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                const SizedBox(height: 12),
-                              ],
+                              ),
+                              const SizedBox(height: 14),
                               Row(
                                 children: [
                                   Expanded(
@@ -387,27 +527,29 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                       onPressed: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
                                           ? null
                                           : _handleCheckIn,
-                                      icon: const Icon(Icons.login),
+                                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                                       label: const Text('Check In'),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.seatAvailable,
+                                        backgroundColor: AppColors.primaryIndigo,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 12),
                                   Expanded(
-                                    child: ElevatedButton.icon(
+                                    child: OutlinedButton.icon(
                                       onPressed: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
                                           ? _handleCheckOut
                                           : null,
-                                      icon: const Icon(Icons.logout),
+                                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                                       label: const Text('Check Out'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.seatOccupied,
-                                        foregroundColor: Colors.white,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.primaryIndigo,
+                                        side: const BorderSide(color: AppColors.primaryIndigo),
                                         padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
                                     ),
                                   ),
@@ -420,203 +562,110 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     else
                       Card(
                         elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        color: Colors.amber.withOpacity(0.1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        color: AppColors.statusWarningBg,
                         child: const Padding(
                           padding: EdgeInsets.all(16.0),
                           child: Row(
                             children: [
-                              Icon(Icons.lock_clock, color: Colors.amber, size: 28),
+                              Icon(Icons.lock_clock, color: AppColors.statusWarning, size: 28),
                               SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   'Daily Attendance Logger will unlock automatically once Admin approves your registration and allots your desk seat.',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.amber),
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB45309)),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
-                    // View Seat Matrix Button
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushNamed('/seat_matrix');
-                      },
-                      icon: const Icon(Icons.grid_on),
-                      label: const Text('VIEW LIBRARY SEAT MATRIX GRID'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
+                    // 5. 2x2 Feature Shortcuts Grid (Concept B)
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 2.2,
+                      children: [
+                        _buildConceptBGridShortcut(
+                          context,
+                          icon: Icons.grid_view_rounded,
+                          title: 'View Seat Matrix',
+                          subtitle: 'Check availability',
+                          color: AppColors.primaryIndigo,
+                          onTap: () => Navigator.of(context).pushNamed('/seat_matrix'),
+                        ),
+                        _buildConceptBGridShortcut(
+                          context,
+                          icon: Icons.receipt_long_rounded,
+                          title: 'My Fee Details',
+                          subtitle: 'Payment & Receipts',
+                          color: AppColors.accentCyan,
+                          onTap: () => Navigator.of(context).pushNamed('/student_fee'),
+                        ),
+                        _buildConceptBGridShortcut(
+                          context,
+                          icon: Icons.chat_bubble_outline_rounded,
+                          title: 'Chat with Admin',
+                          subtitle: 'Instant Support',
+                          unreadCount: _dashboardData?['unread_chat_count'] ?? 0,
+                          color: AppColors.accentViolet,
+                          onTap: () => Navigator.of(context).pushNamed('/student_chat'),
+                        ),
+                        _buildConceptBGridShortcut(
+                          context,
+                          icon: Icons.support_agent_rounded,
+                          title: 'Support Tickets',
+                          subtitle: 'View Help History',
+                          color: AppColors.statusWarning,
+                          onTap: () => Navigator.of(context).pushNamed('/support_tickets'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
-                    // Card 3: Monthly Fee Ledger
-                    Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
+                    // 6. Motivation Quote Card (Concept B Banner)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primaryIndigo.withOpacity(0.08),
+                            AppColors.accentCyan.withOpacity(0.08),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.auto_stories_rounded, color: AppColors.primaryIndigo, size: 28),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.account_balance_wallet, color: AppColors.seatPending),
-                                SizedBox(width: 8),
                                 Text(
-                                  'Monthly Fee Overview',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  '"Discipline today, Success tomorrow."',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryIndigo,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Keep studying consistently at Keshav Self-Study Hall!',
+                                  style: TextStyle(fontSize: 11, color: Colors.black54),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Monthly Fee Amount: ₹${_dashboardData?['fee_details']?['amount'] ?? 0}',
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              'Due Date: ${_dashboardData?['fee_details']?['due_date'] ?? "N/A"}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 13),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.receipt_long, size: 18),
-                                label: const Text('View Payment Receipts & History'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.primaryIndigo,
-                                  side: const BorderSide(color: AppColors.primaryIndigo),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                onPressed: () {
-                                  Navigator.of(context).pushNamed('/student_fee');
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Premium Direct Personal Chat Card with Admin
-                    InkWell(
-                      onTap: () {
-                        Navigator.of(context).pushNamed('/student_chat');
-                      },
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.primaryIndigo, Color(0xFF0EA5E9)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryIndigo.withOpacity(0.35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.mark_chat_unread_rounded,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Text(
-                                        'Direct Chat with Admin 💬',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      if ((_dashboardData?['unread_chat_count'] ?? 0) > 0) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.redAccent,
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            '${_dashboardData!['unread_chat_count']} NEW',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Instant 1-on-1 support & desk help • Clears in 48h',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Support / Complaint Button
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushNamed('/support_tickets');
-                      },
-                      icon: const Icon(Icons.help_outline),
-                      label: const Text('My Support Tickets & Need Help History'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -635,6 +684,118 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildConceptBQuickAction(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConceptBGridShortcut(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    int unreadCount = 0,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      color: isDark ? AppColors.darkCard : Colors.white,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (unreadCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                      ],
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
