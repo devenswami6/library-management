@@ -104,9 +104,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Row(
-          children: const [
-            Icon(Icons.delete_sweep, color: Colors.orangeAccent),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_sweep_rounded, color: Colors.orangeAccent),
             SizedBox(width: 8),
             Text('Move to Recycle Bin', style: TextStyle(color: Colors.orangeAccent, fontSize: 16)),
           ],
@@ -127,7 +127,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
               Navigator.of(ctx).pop();
               _performSoftDeleteStudent(studentId, studentName);
             },
-            icon: const Icon(Icons.delete, color: Colors.white),
+            icon: const Icon(Icons.delete_rounded, color: Colors.white),
             label: const Text('MOVE TO RECYCLE BIN', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -168,7 +168,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(res['message'] ?? 'Student "$studentName" restored to active list.'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.statusSuccess,
           ),
         );
         _fetchActiveStudents();
@@ -188,8 +188,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
             SizedBox(width: 8),
             Text('Permanently Delete', style: TextStyle(color: Colors.redAccent, fontSize: 16)),
@@ -198,7 +198,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
         content: Text(
           '⚠️ PERMANENT PURGE WARNING:\n\n'
           'Are you sure you want to PERMANENTLY ERASE "$studentName" from the database?\n\n'
-          'This will erase all attendance, fees, and chat records permanently. This CANNOT be undone.',
+          'This will permanently delete profile, fee records, attendance logs, and seat assignments. This action CANNOT be undone.',
           style: const TextStyle(fontSize: 14),
         ),
         actions: [
@@ -207,7 +207,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
             child: const Text('CANCEL'),
           ),
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.of(ctx).pop();
               final res = await ApiService.permanentDeleteStudent(studentId);
@@ -215,20 +215,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                 if (res['success'] == true) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(res['message'] ?? 'Student record permanently erased.'),
-                      backgroundColor: Colors.redAccent,
+                      content: Text(res['message'] ?? 'Student "$studentName" permanently deleted.'),
+                      backgroundColor: Colors.red,
                     ),
                   );
                   _fetchRecycleBinStudents();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(res['message'] ?? 'Failed to permanently erase record.')),
+                    SnackBar(content: Text(res['message'] ?? 'Failed to erase student permanently.')),
                   );
                 }
               }
             },
-            icon: const Icon(Icons.delete_forever, color: Colors.white),
-            label: const Text('PERMANENTLY ERASE', style: TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.delete_forever_rounded, color: Colors.white),
+            label: const Text('ERASE PERMANENTLY', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -236,20 +236,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
   }
 
   void _showStudentDetailsModal(Map<String, dynamic> s) {
-    final String status = s['status'] ?? 'pending';
-    Color statusColor = Colors.orange;
-    String statusLabel = 'Pending';
-    if (status == 'approved' || status == 'active') {
-      statusColor = Colors.green;
-      statusLabel = 'Approved';
-    } else if (status == 'hold') {
-      statusColor = Colors.amber;
-      statusLabel = 'On Hold';
-    } else if (status == 'cancelled') {
-      statusColor = Colors.red;
-      statusLabel = 'Cancelled';
-    }
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -257,103 +243,80 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return Padding(
+        return SingleChildScrollView(
           padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            top: 20,
             left: 20,
             right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
-                      borderRadius: BorderRadius.circular(2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Student Profile: ${s['name']}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 26,
-                      backgroundColor: AppColors.primaryIndigo,
-                      child: Text(
-                        (s['name'] ?? 'S').substring(0, 1).toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            s['name'] ?? 'No Name',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              statusLabel,
-                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Divider(height: 28),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
 
-                _buildDetailRow(Icons.phone, 'Mobile Phone', s['phone'] ?? 'N/A'),
-                _buildDetailRow(Icons.email, 'Email Address', s['email'] ?? 'N/A'),
-                _buildDetailRow(Icons.person, 'Father Name', s['father_name'] ?? 'N/A'),
-                _buildDetailRow(Icons.phone_paused, 'Emergency Contact', s['emergency_contact'] ?? 'N/A'),
-                _buildDetailRow(Icons.badge, 'ID Proof', '${s['id_proof_type'] ?? 'ID'}: ${s['id_proof_no'] ?? 'N/A'}'),
-                _buildDetailRow(Icons.chair, 'Allotted Desk', s['seat_number'] != null ? 'Desk ${s['seat_number']}' : 'Not Allotted'),
-                _buildDetailRow(Icons.schedule, 'Shift Timing', s['shift_name'] ?? 'N/A'),
-                _buildDetailRow(Icons.calendar_month, 'Joining Date', s['start_date'] ?? s['created_at'] ?? 'N/A'),
-                _buildDetailRow(Icons.phone_android, 'Hardware Device ID', s['registered_device_id'] ?? 'Not Bound Yet'),
-                _buildDetailRow(Icons.home, 'Residential Address', s['address'] ?? 'N/A'),
+              _buildDetailRow(Icons.person_rounded, 'Full Name', s['name'] ?? 'N/A'),
+              _buildDetailRow(Icons.family_restroom_rounded, 'Father Name', s['father_name'] ?? 'N/A'),
+              _buildDetailRow(Icons.phone_android_rounded, 'Phone Number', s['phone'] ?? 'N/A'),
+              _buildDetailRow(Icons.email_rounded, 'Email Address', s['email'] ?? 'N/A'),
+              _buildDetailRow(Icons.event_seat_rounded, 'Assigned Desk', s['seat_number'] != null ? 'Desk ${s['seat_number']}' : 'Unassigned'),
+              _buildDetailRow(Icons.schedule_rounded, 'Assigned Shift', '${s['shift_name'] ?? 'N/A'} (${s['start_time'] ?? ''} - ${s['end_time'] ?? ''})'),
+              _buildDetailRow(Icons.location_on_rounded, 'Home Address', s['address'] ?? 'N/A'),
+              _buildDetailRow(Icons.numbers_rounded, 'Aadhaar / ID', s['aadhaar_number'] ?? 'N/A'),
+              _buildDetailRow(Icons.phone_in_talk_rounded, 'Emergency Contact', s['emergency_contact'] ?? 'N/A'),
+              _buildDetailRow(Icons.phone_iphone_rounded, 'Hardware Device ID', s['device_mac'] ?? 'Not Bound'),
+              _buildDetailRow(Icons.calendar_today_rounded, 'Registration Date', s['created_at'] ?? 'N/A'),
+              _buildDetailRow(Icons.verified_rounded, 'Account Status', (s['status'] ?? 'pending').toString().toUpperCase()),
 
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('CLOSE'),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.close_rounded),
+                      label: const Text('Close'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
+                      onPressed: () => Navigator.pop(ctx),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          _confirmSoftDeleteStudent(s);
-                        },
-                        icon: const Icon(Icons.delete, color: Colors.white),
-                        label: const Text('MOVE TO RECYCLE BIN', style: TextStyle(color: Colors.white, fontSize: 11)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white),
+                      label: const Text('Move to Bin', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orangeAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _confirmSoftDeleteStudent(s);
+                      },
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -447,12 +410,14 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
   }
 
   Widget _buildActiveStudentsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: [
         // Search & Filter Header Container
         Container(
-          color: Theme.of(context).cardColor,
-          padding: const EdgeInsets.all(12.0),
+          color: isDark ? AppColors.darkCard : Colors.white,
+          padding: const EdgeInsets.all(14.0),
           child: Column(
             children: [
               TextField(
@@ -462,10 +427,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                 },
                 decoration: InputDecoration(
                   hintText: 'Search student name, phone, desk...',
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryIndigo),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear),
+                          icon: const Icon(Icons.clear_rounded),
                           onPressed: () {
                             setState(() => _searchQuery = '');
                             _applyFilters();
@@ -473,7 +438,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                         )
                       : null,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 10),
@@ -483,9 +448,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                 child: Row(
                   children: [
                     _buildFilterChip('All Students', 'all'),
-                    _buildFilterChip('Approved', 'approved'),
-                    _buildFilterChip('Pending', 'pending'),
-                    _buildFilterChip('On Hold', 'hold'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Approved 🟢', 'approved'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Pending 🟡', 'pending'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('On Hold 🟠', 'hold'),
                   ],
                 ),
               ),
@@ -496,13 +464,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
         // Active Student Cards List
         Expanded(
           child: _isLoadingActive
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
               : _filteredStudents.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                          Icon(Icons.people_outline_rounded, size: 64, color: Colors.grey),
                           SizedBox(height: 12),
                           Text('No active student records found.', style: TextStyle(color: Colors.grey)),
                         ],
@@ -510,41 +478,52 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                     )
                   : RefreshIndicator(
                       onRefresh: _fetchActiveStudents,
+                      color: AppColors.primaryIndigo,
                       child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         itemCount: _filteredStudents.length,
                         itemBuilder: (ctx, idx) {
                           final s = _filteredStudents[idx];
                           final String status = s['status'] ?? 'pending';
 
-                          Color badgeColor = Colors.orange;
+                          Color statusBg = AppColors.statusWarningBg;
+                          Color statusTextColor = const Color(0xFFB45309);
                           String statusText = 'Pending';
+
                           if (status == 'approved' || status == 'active') {
-                            badgeColor = Colors.green;
+                            statusBg = AppColors.statusSuccessBg;
+                            statusTextColor = AppColors.statusSuccess;
                             statusText = 'Approved';
                           } else if (status == 'hold') {
-                            badgeColor = Colors.amber;
+                            statusBg = Colors.orange.shade50;
+                            statusTextColor = Colors.orange.shade800;
                             statusText = 'On Hold';
                           }
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            color: isDark ? AppColors.darkCard : Colors.white,
                             child: InkWell(
                               onTap: () => _showStudentDetailsModal(s),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(16),
                               child: Padding(
-                                padding: const EdgeInsets.all(12.0),
+                                padding: const EdgeInsets.all(14.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
                                         CircleAvatar(
+                                          radius: 22,
                                           backgroundColor: AppColors.primaryIndigo.withOpacity(0.15),
                                           child: Text(
                                             (s['name'] ?? 'S').substring(0, 1).toUpperCase(),
-                                            style: const TextStyle(color: AppColors.primaryIndigo, fontWeight: FontWeight.bold),
+                                            style: const TextStyle(
+                                              color: AppColors.primaryIndigo,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 12),
@@ -563,36 +542,45 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                                                     ),
                                                   ),
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                                     decoration: BoxDecoration(
-                                                      color: badgeColor.withOpacity(0.15),
-                                                      borderRadius: BorderRadius.circular(4),
+                                                      color: statusBg,
+                                                      borderRadius: BorderRadius.circular(10),
                                                     ),
                                                     child: Text(
                                                       statusText,
-                                                      style: TextStyle(color: badgeColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                                      style: TextStyle(
+                                                        color: statusTextColor,
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                '📞 ${s['phone'] ?? 'N/A'}',
-                                                style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                                '📞 ${s['phone'] ?? 'N/A'} • ${s['email'] ?? ''}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const Divider(height: 16),
+                                    const Divider(height: 18),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            '🪑 Desk: ${s['seat_number'] != null ? 'Desk ' + s['seat_number'].toString() : 'Unassigned'} • Shift: ${s['shift_name'] ?? 'N/A'}',
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                            '🪑 Desk: ${s['seat_number'] != null ? 'Desk ' + s['seat_number'].toString() : 'Unassigned'} • ${s['shift_name'] ?? 'Shift N/A'}',
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -603,14 +591,14 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                                             IconButton(
                                               constraints: const BoxConstraints(),
                                               padding: const EdgeInsets.symmetric(horizontal: 8),
-                                              icon: const Icon(Icons.info_outline, color: AppColors.primaryIndigo, size: 20),
+                                              icon: const Icon(Icons.info_outline_rounded, color: AppColors.primaryIndigo, size: 22),
                                               onPressed: () => _showStudentDetailsModal(s),
                                               tooltip: 'View Profile',
                                             ),
                                             IconButton(
                                               constraints: const BoxConstraints(),
                                               padding: const EdgeInsets.symmetric(horizontal: 8),
-                                              icon: const Icon(Icons.delete_outline, color: Colors.orangeAccent, size: 20),
+                                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.orangeAccent, size: 22),
                                               onPressed: () => _confirmSoftDeleteStudent(s),
                                               tooltip: 'Move to Recycle Bin',
                                             ),
@@ -631,9 +619,34 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
     );
   }
 
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _selectedStatusFilter == value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AppColors.primaryIndigo,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.grey.shade200,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        fontSize: 13,
+      ),
+      onSelected: (val) {
+        if (val) {
+          setState(() => _selectedStatusFilter = value);
+          _applyFilters();
+        }
+      },
+    );
+  }
+
   Widget _buildRecycleBinTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return _isLoadingRecycleBin
-        ? const Center(child: CircularProgressIndicator())
+        ? const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
         : _recycleBinStudents.isEmpty
             ? Center(
                 child: Column(
@@ -649,100 +662,76 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
               )
             : RefreshIndicator(
                 onRefresh: _fetchRecycleBinStudents,
+                color: AppColors.primaryIndigo,
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   itemCount: _recycleBinStudents.length,
                   itemBuilder: (ctx, idx) {
                     final s = _recycleBinStudents[idx];
-                    final int daysLeft = s['days_left'] is int ? s['days_left'] : int.tryParse(s['days_left'].toString()) ?? 30;
-
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(color: Colors.redAccent.withOpacity(0.3)),
-                      ),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: isDark ? AppColors.darkCard : Colors.white,
                       child: Padding(
-                        padding: const EdgeInsets.all(12.0),
+                        padding: const EdgeInsets.all(14.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const CircleAvatar(
-                                  backgroundColor: Colors.redAccent,
-                                  child: Icon(Icons.delete_outline, color: Colors.white),
+                                CircleAvatar(
+                                  backgroundColor: Colors.red.withOpacity(0.15),
+                                  child: Text(
+                                    (s['name'] ?? 'S').substring(0, 1).toUpperCase(),
+                                    style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              s['name'] ?? 'No Name',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: Colors.amber.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              '⏰ $daysLeft Days Left',
-                                              style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ],
+                                      Text(
+                                        s['name'] ?? 'No Name',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text('📞 Phone: ${s['phone'] ?? 'N/A'}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Deleted: ${s['deleted_at'] ?? 'Recently'} • ${s['phone'] ?? ''}',
+                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                      ),
                                     ],
                                   ),
                                 ),
                               ],
                             ),
-                            const Divider(height: 16),
+                            const Divider(height: 18),
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    '🗓️ Deleted: ${s['deleted_at'] ?? 'Recently'}',
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.restore_from_trash_rounded, color: Colors.white, size: 16),
+                                    label: const Text('Restore', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.statusSuccess,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: () => _restoreStudent(s),
                                   ),
                                 ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      onPressed: () => _restoreStudent(s),
-                                      icon: const Icon(Icons.restore, color: Colors.white, size: 14),
-                                      label: const Text('Restore', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 16),
+                                    label: const Text('Erase', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                     ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      constraints: const BoxConstraints(),
-                                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                                      icon: const Icon(Icons.close, color: Colors.redAccent, size: 20),
-                                      onPressed: () => _confirmPermanentDeleteStudent(s),
-                                      tooltip: 'Delete Permanently',
-                                    ),
-                                  ],
+                                    onPressed: () => _confirmPermanentDeleteStudent(s),
+                                  ),
                                 ),
                               ],
                             ),
@@ -753,30 +742,5 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                   },
                 ),
               );
-  }
-
-  Widget _buildFilterChip(String label, String value) {
-    final isSelected = _selectedStatusFilter == value;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(
-          label,
-          style: TextStyle(
-            color: isSelected
-                ? (isDark ? Colors.white : AppColors.primaryIndigo)
-                : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        selected: isSelected,
-        selectedColor: AppColors.primaryIndigo.withOpacity(0.25),
-        onSelected: (val) {
-          setState(() => _selectedStatusFilter = value);
-          _applyFilters();
-        },
-      ),
-    );
   }
 }
