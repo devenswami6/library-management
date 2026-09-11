@@ -19,7 +19,7 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
   List<dynamic> _filteredThreads = [];
   final TextEditingController _searchController = TextEditingController();
   Timer? _pollingTimer;
-  String _chatFilter = 'all'; // all, unread, resolved
+  String _chatFilter = 'all'; // all, unread
 
   @override
   void initState() {
@@ -67,7 +67,7 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
         final unread = Convert.toInt(t['unread_count']);
 
         final matchesSearch = query.isEmpty || name.contains(query) || phone.contains(query) || desk.contains(query);
-        final matchesFilter = _chatFilter == 'all' || (_chatFilter == 'unread' && unread > 0) || (_chatFilter == 'resolved' && unread == 0);
+        final matchesFilter = _chatFilter == 'all' || (_chatFilter == 'unread' && unread > 0);
 
         return matchesSearch && matchesFilter;
       }).toList();
@@ -96,7 +96,7 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
       appBar: const CustomAppBar(title: 'Student Support Chats 💬'),
       body: Column(
         children: [
-          // Header Search Bar & Filter Chips (Matching Screen 15)
+          // Header Search Bar & Filter Chips (Fixing Point 4: Clean All / Unread chips)
           Container(
             color: isDark ? AppColors.darkCard : Colors.white,
             padding: const EdgeInsets.all(14.0),
@@ -117,11 +117,9 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFilterChip('All', 'all'),
+                      _buildFilterChip('All (${_threads.length})', 'all'),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Unread 🔴', 'unread'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Resolved 🟢', 'resolved'),
+                      _buildFilterChip('Unread 🔴 (${_threads.where((t) => Convert.toInt(t['unread_count']) > 0).length})', 'unread'),
                     ],
                   ),
                 ),

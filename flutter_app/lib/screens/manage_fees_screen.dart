@@ -60,7 +60,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     return _allPayments.where((p) => (p['payment_status'] ?? '') == _filter).toList();
   }
 
-  // Record Payment / Advance Pay Modal (Matching Screen 12 Advance Pay)
+  // Record Payment Modal (For Collect Fee & Advance Pay)
   void _openRecordPaymentModal(Map<String, dynamic> item, {bool isAdvance = false}) {
     final double defaultAmount = (item['fee_amount'] as num?)?.toDouble() ?? 600.0;
     final TextEditingController amountController = TextEditingController(text: defaultAmount.toStringAsFixed(0));
@@ -90,8 +90,8 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isAdvance ? 'Record Advance Fee Collection ⚡' : 'Record Monthly Fee Collection',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        isAdvance ? 'Record Advance Fee Collection ⚡' : 'Collect Fee Payment 💳',
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -99,9 +99,24 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                       ),
                     ],
                   ),
-                  Text(
-                    'Student: ${item['student_name']} • Desk ${item['seat_number']}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryIndigo.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_rounded, size: 18, color: AppColors.primaryIndigo),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Student: ${item['student_name']} • Desk ${item['seat_number']} (${item['shift_name'] ?? ''})',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -146,11 +161,11 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.receipt_long_rounded, color: Colors.white),
                       label: Text(
-                        isAdvance ? 'Record Advance Pay & Send Receipt' : 'Record Payment & Send Receipt',
+                        isAdvance ? 'Record Advance Payment' : 'Collect Fee & Send Receipt',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryIndigo,
+                        backgroundColor: isAdvance ? AppColors.primaryIndigo : AppColors.statusSuccess,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () async {
@@ -189,10 +204,11 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     );
   }
 
-  // Fee Details Modal (Matching Screen 12 Fee Details with History & Advance buttons)
+  // Fee Details Modal (Fixing Student Details & Context-Aware Collect vs Advance buttons)
   void _openFeeDetailsModal(Map<String, dynamic> item) {
     final status = item['payment_status'] ?? 'pending';
     final bool isPaid = status == 'paid';
+    final bool isOverdue = status == 'overdue';
     final String statementPdfUrl = '${ApiConfig.baseUrl}/receipt_statement.php?user_id=${item['user_id']}';
 
     showModalBottomSheet(
@@ -213,17 +229,18 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Student Details Header
                   Row(
                     children: [
                       CircleAvatar(
-                        radius: 22,
+                        radius: 24,
                         backgroundColor: AppColors.primaryIndigo.withOpacity(0.12),
                         child: Text(
                           (item['student_name'] ?? 'S').substring(0, 1).toUpperCase(),
                           style: const TextStyle(
                             color: AppColors.primaryIndigo,
                             fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                            fontSize: 20,
                           ),
                         ),
                       ),
@@ -233,13 +250,18 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item['student_name'] ?? 'Student',
-                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                              item['student_name'] ?? 'Student Name',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              'Desk ${item['seat_number']} • ${item['shift_name'] ?? 'Shift'}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 13),
+                              'Desk ${item['seat_number']} • ${item['shift_name'] ?? "Shift"}',
+                              style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
                             ),
+                            if (item['phone'] != null)
+                              Text(
+                                '📞 Phone: ${item['phone']}',
+                                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
                           ],
                         ),
                       ),
@@ -251,7 +273,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Fee Overview Card inside Modal (Matching Screen 12)
+                  // Fee Summary Card
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -269,10 +291,10 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 '₹${(double.tryParse((item['fee_amount'] ?? 600).toString()) ?? 600).toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 8),
-                              Text('Next Due Date: ${item['due_date'] ?? '04 Oct 2026'}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              Text('Next Due Date: ${item['due_date'] ?? '2026-09-10'}', style: TextStyle(fontSize: 12, color: isOverdue ? AppColors.statusDanger : Colors.grey, fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal)),
                             ],
                           ),
                         ),
@@ -282,20 +304,24 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: isPaid ? AppColors.statusSuccessBg : AppColors.statusWarningBg,
+                                color: isPaid
+                                    ? AppColors.statusSuccessBg
+                                    : (isOverdue ? AppColors.statusDangerBg : AppColors.statusWarningBg),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                isPaid ? 'Paid' : 'Pending',
+                                isPaid ? 'Paid' : (isOverdue ? 'Overdue' : 'Pending'),
                                 style: TextStyle(
-                                  color: isPaid ? AppColors.statusSuccess : const Color(0xFFB45309),
+                                  color: isPaid
+                                      ? AppColors.statusSuccess
+                                      : (isOverdue ? AppColors.statusDanger : const Color(0xFFB45309)),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text('Cycle: ${item['month_year']}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text('Cycle: ${item['month_year'] ?? "2026-09"}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           ],
                         ),
                       ],
@@ -303,7 +329,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Action Buttons Row: [History] & [Advance] (Matching Screen 12!)
+                  // Dynamic Buttons: Collect Fee vs Advance / Receipt (Fixing Point 2!)
                   Row(
                     children: [
                       Expanded(
@@ -321,19 +347,33 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.white),
-                          label: const Text('Advance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryIndigo,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _openRecordPaymentModal(item, isAdvance: true);
-                          },
-                        ),
+                        child: !isPaid
+                            ? ElevatedButton.icon(
+                                icon: const Icon(Icons.payments_rounded, size: 16, color: Colors.white),
+                                label: const Text('Collect Fee', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusSuccess,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  _openRecordPaymentModal(item, isAdvance: false);
+                                },
+                              )
+                            : ElevatedButton.icon(
+                                icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.white),
+                                label: const Text('Advance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryIndigo,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  _openRecordPaymentModal(item, isAdvance: true);
+                                },
+                              ),
                       ),
                     ],
                   ),
@@ -420,7 +460,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final double totalCollected = (_stats?['total_collected'] as num?)?.toDouble() ?? 19000.0;
+    final double totalCollected = (_stats?['total_collected'] as num?)?.toDouble() ?? 1900.0;
     final int pendingCount = _stats?['pending_count'] ?? 0;
     final int overdueCount = _stats?['overdue_count'] ?? 2;
 
@@ -437,7 +477,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Screen 11 Top Banner: "Monthly Fee Collection ₹19,000"
+                    // Top Banner Card
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -513,7 +553,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     ),
                     const SizedBox(height: 18),
 
-                    // Screen 11 Filter Pills
+                    // Filter Pills Bar
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -546,7 +586,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Screen 11 Student Fee Cards List
+                    // Student Fee Cards List
                     _filteredPayments.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 40),
@@ -616,11 +656,27 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     );
   }
 
-  // Fee Card (Matching Screen 11 layout)
+  // Student Fee Card with Overdue Days & Clean Formatting
   Widget _buildFeeCard(Map<String, dynamic> item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final status = item['payment_status'] ?? 'pending';
-    final String displayLabel = item['label'] ?? (status == 'paid' ? 'Paid' : (status == 'overdue' ? 'Overdue' : 'Pending'));
+
+    String displayLabel = item['label'] ?? (status == 'paid' ? 'Paid' : (status == 'overdue' ? 'Overdue' : 'Pending'));
+
+    // Calculate overdue days if overdue
+    int overdueDays = 0;
+    if (status == 'overdue' && item['due_date'] != null) {
+      try {
+        final dueDate = DateTime.parse(item['due_date']);
+        final now = DateTime.now();
+        final diff = now.difference(dueDate).inDays;
+        if (diff > 0) overdueDays = diff;
+      } catch (_) {}
+    }
+
+    if (overdueDays > 0) {
+      displayLabel = 'Overdue ($overdueDays days)';
+    }
 
     Color statusBg = AppColors.statusWarningBg;
     Color statusTextColor = const Color(0xFFB45309);
@@ -663,25 +719,27 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   children: [
                     Text(
                       item['student_name'] ?? 'Student',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Desk ${item['seat_number']} • ${item['shift_name'] ?? 'Shift'}',
+                      'Desk ${item['seat_number'] ?? 'N/A'} • ${item['shift_name'] ?? 'Shift'}',
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      'Next Due: ${item['due_date'] ?? '04 Oct 2026'}',
+                      'Next Due: ${item['due_date'] ?? '2026-09-10'}',
                       style: TextStyle(
                         fontSize: 11,
                         color: status == 'overdue' ? AppColors.statusDanger : Colors.grey,
+                        fontWeight: status == 'overdue' ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: statusBg,
                   borderRadius: BorderRadius.circular(10),
@@ -691,7 +749,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                   style: TextStyle(
                     color: statusTextColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ),

@@ -15,9 +15,9 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
   List<dynamic> _allAttendance = [];
   List<dynamic> _filteredAttendance = [];
   String _todayDate = '';
-  int _totalStudents = 25;
-  int _currentlyInside = 18;
-  int _absentOutside = 7;
+  int _totalStudents = 5;
+  int _currentlyInside = 0;
+  int _absentOutside = 5;
   String _searchQuery = '';
   String _statusFilter = 'all'; // all, inside, outside
 
@@ -91,7 +91,7 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(res['message'] ?? 'Attendance status updated.'),
-          backgroundColor: type == 'checkin' ? AppColors.statusSuccess : Colors.orangeAccent,
+          backgroundColor: type == 'checkin' ? AppColors.statusSuccess : AppColors.statusDanger,
         ),
       );
       _loadLiveAttendance();
@@ -111,7 +111,7 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
               color: AppColors.primaryIndigo,
               child: Column(
                 children: [
-                  // Top Summary Metrics Bar (Matching Screen 10 layout)
+                  // Top Summary Metrics Bar (Fixing Point 3 Alignment & Red Color for Outside!)
                   Container(
                     color: isDark ? AppColors.darkCard : Colors.white,
                     padding: const EdgeInsets.all(14),
@@ -124,6 +124,7 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                                 value: '$_totalStudents',
                                 label: 'Total Allotted',
                                 color: AppColors.primaryIndigo,
+                                bg: AppColors.primaryIndigo.withOpacity(0.08),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -131,7 +132,8 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                               child: _buildMetricCard(
                                 value: '$_currentlyInside',
                                 label: 'Inside Hall',
-                                color: const Color(0xFF10B981),
+                                color: AppColors.statusSuccess,
+                                bg: AppColors.statusSuccessBg,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -139,7 +141,8 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                               child: _buildMetricCard(
                                 value: '$_absentOutside',
                                 label: 'Outside / Exited',
-                                color: const Color(0xFFF59E0B),
+                                color: AppColors.statusDanger,
+                                bg: AppColors.statusDangerBg,
                               ),
                             ),
                           ],
@@ -170,7 +173,7 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Status Filter Chips (Matching Screen 10)
+                        // Status Filter Chips
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
@@ -255,7 +258,7 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                                           Text(
                                             isPresent ? 'Inside' : 'Outside',
                                             style: TextStyle(
-                                              color: isPresent ? AppColors.statusSuccess : const Color(0xFFF59E0B),
+                                              color: isPresent ? AppColors.statusSuccess : AppColors.statusDanger,
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -264,7 +267,7 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                                           isPresent
                                               ? ElevatedButton(
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: const Color(0xFF10B981),
+                                                    backgroundColor: AppColors.statusSuccess,
                                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                                   ),
@@ -299,14 +302,17 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
     required String value,
     required String label,
     required Color color,
+    required Color bg,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      height: 72,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: bg,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             value,
@@ -315,8 +321,10 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

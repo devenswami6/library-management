@@ -17,9 +17,13 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   bool _isSending = false;
-  String _sendTarget = 'all'; // all or specific
+  String _sendTarget = 'all'; // 'all' or 'specific'
 
-  List<dynamic> _historyNotifs = [
+  List<dynamic> _studentsList = [];
+  int? _selectedStudentId;
+  bool _isLoadingStudents = false;
+
+  final List<dynamic> _historyNotifs = [
     {
       'title': 'Library Closed on 2 Oct',
       'content': 'The self-study hall will remain closed on 2nd October for Gandhi Jayanti holiday.',
@@ -44,6 +48,7 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _fetchStudents();
   }
 
   @override
@@ -52,6 +57,26 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchStudents() async {
+    setState(() => _isLoadingStudents = true);
+    final res = await ApiService.getAllStudents();
+    if (mounted) {
+      if (res['success'] == true) {
+        setState(() {
+          _studentsList = res['students'] ?? [];
+          if (_studentsList.isNotEmpty) {
+            _selectedStudentId = _studentsList.first['id'] is int
+                ? _studentsList.first['id']
+                : int.tryParse(_studentsList.first['id'].toString());
+          }
+          _isLoadingStudents = false;
+        });
+      } else {
+        setState(() => _isLoadingStudents = false);
+      }
+    }
   }
 
   void _handleSendNotification() async {
@@ -65,26 +90,44 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
       return;
     }
 
+    if (_sendTarget == 'specific' && _selectedStudentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a specific student from the dropdown.')),
+      );
+      return;
+    }
+
     setState(() => _isSending = true);
     final res = await ApiService.sendNotification(
       title.isEmpty ? 'Notice' : title,
       content,
+      targetUserId: _sendTarget == 'specific' ? _selectedStudentId : null,
     );
     setState(() => _isSending = false);
 
     if (mounted) {
       if (res['success'] == true) {
+        String targetText = 'To: All Students';
+        if (_sendTarget == 'specific' && _selectedStudentId != null) {
+          final targetStudent = _studentsList.firstWhere(
+            (s) => s['id'] == _selectedStudentId || s['id'].toString() == _selectedStudentId.toString(),
+            orElse: () => {'name': 'Student'},
+          );
+          targetText = 'To: ${targetStudent['name']}';
+        }
+
         _historyNotifs.insert(0, {
           'title': title.isEmpty ? 'Notice' : title,
           'content': content,
-          'target': _sendTarget == 'all' ? 'To: All Students' : 'To: Specific Student',
+          'target': targetText,
           'created_at': 'Just Now',
         });
         _titleController.clear();
         _contentController.clear();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(res['message'] ?? 'Notification broadcast sent successfully!'),
+            content: Text(res['message'] ?? 'Notification announcement sent!'),
             backgroundColor: AppColors.statusSuccess,
           ),
         );
@@ -125,7 +168,7 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
           ? TabBarView(
               controller: _tabController,
               children: [
-                // TAB 1: Broadcast Form (Matching Screen 13)
+                // TAB 1: Broadcast Form (Fixing Radio Overflow & Adding Student Dropdown Selector!)
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -162,38 +205,113 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
                                 maxLines: 4,
                                 decoration: const InputDecoration(
                                   labelText: 'Message Content *',
-                                  hintText: 'Enter message for all students...',
+                                  hintText: 'Enter message for students...',
                                   alignLabelWithHint: true,
                                   border: OutlineInputBorder(),
                                 ),
                               ),
                               const SizedBox(height: 16),
 
-                              const Text('Send To:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                              Row(
+                              const Text('Send To:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              const SizedBox(height: 6),
+
+                              // Responsive Radio Target Selection (Fixing Point 5 Overflow!)
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Radio<String>(
-                                    value: 'all',
-                                    groupValue: _sendTarget,
-                                    activeColor: AppColors.primaryIndigo,
-                                    onChanged: (val) => setState(() => _sendTarget = val!),
+                                  InkWell(
+                                    onTap: () => setState(() => _sendTarget = 'all'),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Radio<String>(
+                                          value: 'all',
+                                          groupValue: _sendTarget,
+                                          activeColor: AppColors.primaryIndigo,
+                                          onChanged: (val) => setState(() => _sendTarget = val!),
+                                        ),
+                                        const Text('All Students', style: TextStyle(fontSize: 14)),
+                                      ],
+                                    ),
                                   ),
-                                  const Text('All Students'),
-                                  const SizedBox(width: 16),
-                                  Radio<String>(
-                                    value: 'specific',
-                                    groupValue: _sendTarget,
-                                    activeColor: AppColors.primaryIndigo,
-                                    onChanged: (val) => setState(() => _sendTarget = val!),
+                                  InkWell(
+                                    onTap: () => setState(() => _sendTarget = 'specific'),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Radio<String>(
+                                          value: 'specific',
+                                          groupValue: _sendTarget,
+                                          activeColor: AppColors.primaryIndigo,
+                                          onChanged: (val) => setState(() => _sendTarget = val!),
+                                        ),
+                                        const Text('Specific Student', style: TextStyle(fontSize: 14)),
+                                      ],
+                                    ),
                                   ),
-                                  const Text('Specific Student'),
                                 ],
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 12),
+
+                              // Student Dropdown Picker (Fixing Point 5 Specific Student Selection!)
+                              if (_sendTarget == 'specific') ...[
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryIndigo.withOpacity(0.06),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.2)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Select Target Student:',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryIndigo),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _isLoadingStudents
+                                          ? const SizedBox(
+                                              height: 40,
+                                              child: Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo, strokeWidth: 2)),
+                                            )
+                                          : _studentsList.isEmpty
+                                              ? const Text('No students found in directory.', style: TextStyle(color: Colors.grey))
+                                              : DropdownButtonFormField<int>(
+                                                  value: _selectedStudentId,
+                                                  isExpanded: true,
+                                                  decoration: const InputDecoration(
+                                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                    border: OutlineInputBorder(),
+                                                    fillColor: Colors.white,
+                                                    filled: true,
+                                                  ),
+                                                  items: _studentsList.map<DropdownMenuItem<int>>((s) {
+                                                    final int id = s['id'] is int ? s['id'] : int.tryParse(s['id'].toString()) ?? 0;
+                                                    return DropdownMenuItem<int>(
+                                                      value: id,
+                                                      child: Text(
+                                                        '${s['name']} (Desk ${s['seat_number'] ?? "N/A"} • ${s['phone'] ?? ""})',
+                                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    );
+                                                  }).toList(),
+                                                  onChanged: (val) {
+                                                    if (val != null) setState(() => _selectedStudentId = val);
+                                                  },
+                                                ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
 
                               SizedBox(
                                 width: double.infinity,
-                                height: 50,
+                                height: 48,
                                 child: ElevatedButton.icon(
                                   onPressed: _isSending ? null : _handleSendNotification,
                                   icon: const Icon(Icons.send_rounded, color: Colors.white),
@@ -221,7 +339,7 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
                   ),
                 ),
 
-                // TAB 2: History List (Matching Screen 14)
+                // TAB 2: History List
                 ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _historyNotifs.length,
@@ -256,7 +374,7 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
                                     item['content'] ?? '',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
