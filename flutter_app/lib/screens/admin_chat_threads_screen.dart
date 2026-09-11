@@ -96,7 +96,7 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
       appBar: const CustomAppBar(title: 'Student Support Chats 💬'),
       body: Column(
         children: [
-          // Header Search Bar & Filter Chips (Fixing Point 4: Clean All / Unread chips)
+          // Header Search Bar & Filter Chips
           Container(
             color: isDark ? AppColors.darkCard : Colors.white,
             padding: const EdgeInsets.all(14.0),
@@ -127,7 +127,7 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
             ),
           ),
 
-          // Thread List
+          // Thread List with Desk Number Badge next to Student Name!
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
@@ -183,14 +183,38 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
                                 title: Row(
                                   children: [
                                     Expanded(
-                                      child: Text(
-                                        studentName,
-                                        style: TextStyle(
-                                          fontWeight: unread > 0 ? FontWeight.bold : FontWeight.w600,
-                                          fontSize: 15,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                      child: Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              studentName,
+                                              style: TextStyle(
+                                                fontWeight: unread > 0 ? FontWeight.bold : FontWeight.w600,
+                                                fontSize: 15,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // Prominent Seat Desk Number Badge next to Student Name!
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.statusSuccessBg,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: AppColors.statusSuccess.withOpacity(0.4)),
+                                            ),
+                                            child: Text(
+                                              desk.isNotEmpty ? 'Desk $desk' : 'Desk N/A',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.statusSuccess,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     if (lastTime.isNotEmpty)

@@ -60,7 +60,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     return _allPayments.where((p) => (p['payment_status'] ?? '') == _filter).toList();
   }
 
-  // Record Payment Modal (For Collect Fee & Advance Pay)
+  // Record Fee Payment Modal
   void _openRecordPaymentModal(Map<String, dynamic> item, {bool isAdvance = false}) {
     final double defaultAmount = (item['fee_amount'] as num?)?.toDouble() ?? 600.0;
     final TextEditingController amountController = TextEditingController(text: defaultAmount.toStringAsFixed(0));
@@ -204,11 +204,8 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     );
   }
 
-  // Fee Details Modal (Fixing Student Details & Context-Aware Collect vs Advance buttons)
-  void _openFeeDetailsModal(Map<String, dynamic> item) {
-    final status = item['payment_status'] ?? 'pending';
-    final bool isPaid = status == 'paid';
-    final bool isOverdue = status == 'overdue';
+  // Fee Details Modal (For full 12-month statement history view)
+  void _openStudentHistoryModal(Map<String, dynamic> item) {
     final String statementPdfUrl = '${ApiConfig.baseUrl}/receipt_statement.php?user_id=${item['user_id']}';
 
     showModalBottomSheet(
@@ -229,18 +226,17 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Student Details Header
                   Row(
                     children: [
                       CircleAvatar(
-                        radius: 24,
+                        radius: 22,
                         backgroundColor: AppColors.primaryIndigo.withOpacity(0.12),
                         child: Text(
                           (item['student_name'] ?? 'S').substring(0, 1).toUpperCase(),
                           style: const TextStyle(
                             color: AppColors.primaryIndigo,
                             fontWeight: FontWeight.bold,
-                            fontSize: 20,
+                            fontSize: 18,
                           ),
                         ),
                       ),
@@ -251,17 +247,12 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                           children: [
                             Text(
                               item['student_name'] ?? 'Student Name',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                             ),
                             Text(
                               'Desk ${item['seat_number']} • ${item['shift_name'] ?? "Shift"}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
+                              style: const TextStyle(color: Colors.grey, fontSize: 13),
                             ),
-                            if (item['phone'] != null)
-                              Text(
-                                '📞 Phone: ${item['phone']}',
-                                style: const TextStyle(color: Colors.grey, fontSize: 12),
-                              ),
                           ],
                         ),
                       ),
@@ -271,113 +262,25 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // Fee Summary Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryIndigo.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Monthly Fee Amount', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                              const SizedBox(height: 2),
-                              Text(
-                                '₹${(double.tryParse((item['fee_amount'] ?? 600).toString()) ?? 600).toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Text('Next Due Date: ${item['due_date'] ?? '2026-09-10'}', style: TextStyle(fontSize: 12, color: isOverdue ? AppColors.statusDanger : Colors.grey, fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal)),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isPaid
-                                    ? AppColors.statusSuccessBg
-                                    : (isOverdue ? AppColors.statusDangerBg : AppColors.statusWarningBg),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                isPaid ? 'Paid' : (isOverdue ? 'Overdue' : 'Pending'),
-                                style: TextStyle(
-                                  color: isPaid
-                                      ? AppColors.statusSuccess
-                                      : (isOverdue ? AppColors.statusDanger : const Color(0xFFB45309)),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Cycle: ${item['month_year'] ?? "2026-09"}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          ],
-                        ),
-                      ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.white),
+                      label: const Text(
+                        'Download 12-Month Statement (PDF)',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade700,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () => _openPdfUrl(statementPdfUrl),
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Dynamic Buttons: Collect Fee vs Advance / Receipt (Fixing Point 2!)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.history_rounded, size: 16),
-                          label: const Text('History'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryIndigo,
-                            side: const BorderSide(color: AppColors.primaryIndigo),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () => _openPdfUrl(statementPdfUrl),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: !isPaid
-                            ? ElevatedButton.icon(
-                                icon: const Icon(Icons.payments_rounded, size: 16, color: Colors.white),
-                                label: const Text('Collect Fee', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.statusSuccess,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  _openRecordPaymentModal(item, isAdvance: false);
-                                },
-                              )
-                            : ElevatedButton.icon(
-                                icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.white),
-                                label: const Text('Advance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryIndigo,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  _openRecordPaymentModal(item, isAdvance: true);
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
+                  const Divider(height: 20),
 
                   const Text(
                     'Receipt History (Last 12 Months)',
@@ -477,7 +380,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top Banner Card
+                    // Top Summary Card (Exact match to media_1789107953922.jpg!)
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -492,33 +395,14 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                         ],
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Monthly Fee Collection',
-                                style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Text('Sep 2026', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                    Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
-                                  ],
-                                ),
-                              ),
-                            ],
+                          const Text(
+                            'Monthly Fee Collection Summary',
+                            style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            '₹${totalCollected.toStringAsFixed(0)}',
+                            '₹${totalCollected.toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 28,
@@ -544,7 +428,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                               _buildStatSubItem(
                                 label: 'Total Active',
                                 value: '${_stats?['total_active'] ?? 5}',
-                                color: const Color(0xFFBAE6FD),
+                                color: Colors.white,
                               ),
                             ],
                           ),
@@ -560,11 +444,11 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                         children: [
                           _buildFilterChip('All Students', 'all'),
                           const SizedBox(width: 8),
-                          _buildFilterChip('Paid', 'paid'),
+                          _buildFilterChip('Paid 🟢', 'paid'),
                           const SizedBox(width: 8),
-                          _buildFilterChip('Pending', 'pending'),
+                          _buildFilterChip('Pending 🟡', 'pending'),
                           const SizedBox(width: 8),
-                          _buildFilterChip('Overdue', 'overdue'),
+                          _buildFilterChip('Overdue 🔴', 'overdue'),
                         ],
                       ),
                     ),
@@ -586,7 +470,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Student Fee Cards List
+                    // Rich Fee Cards (Exact match to media_1789107953922.jpg design!)
                     _filteredPayments.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 40),
@@ -603,7 +487,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                             itemCount: _filteredPayments.length,
                             itemBuilder: (ctx, idx) {
                               final item = _filteredPayments[idx];
-                              return _buildFeeCard(item);
+                              return _buildRichFeeCard(item);
                             },
                           ),
 
@@ -656,105 +540,187 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     );
   }
 
-  // Student Fee Card with Overdue Days & Clean Formatting
-  Widget _buildFeeCard(Map<String, dynamic> item) {
+  // Rich Fee Card matching media_1789107953922.jpg layout exactly!
+  Widget _buildRichFeeCard(Map<String, dynamic> item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final status = item['payment_status'] ?? 'pending';
+    final bool isPaid = status == 'paid';
+    final bool isOverdue = status == 'overdue';
 
-    String displayLabel = item['label'] ?? (status == 'paid' ? 'Paid' : (status == 'overdue' ? 'Overdue' : 'Pending'));
+    final String studentName = item['student_name'] ?? 'Student';
+    final String seatNumber = item['seat_number'] ?? 'N/A';
+    final String shiftName = item['shift_name'] ?? 'Morning Shift';
+    final double amount = (item['fee_amount'] as num?)?.toDouble() ?? 600.0;
+    final String dueDate = item['due_date'] ?? '2026-10-04';
+    final String cycle = item['month_year'] ?? 'October 2026';
 
-    // Calculate overdue days if overdue
-    int overdueDays = 0;
-    if (status == 'overdue' && item['due_date'] != null) {
+    // Status Badge Text & Colors (Matching media_1789107953922.jpg!)
+    String statusBadgeText = 'Paid (Valid till $dueDate)';
+    Color statusBg = AppColors.statusSuccessBg;
+    Color statusTextColor = AppColors.statusSuccess;
+
+    if (isOverdue) {
+      int days = 0;
       try {
-        final dueDate = DateTime.parse(item['due_date']);
-        final now = DateTime.now();
-        final diff = now.difference(dueDate).inDays;
-        if (diff > 0) overdueDays = diff;
+        final dt = DateTime.parse(dueDate);
+        final diff = DateTime.now().difference(dt).inDays;
+        if (diff > 0) days = diff;
       } catch (_) {}
-    }
-
-    if (overdueDays > 0) {
-      displayLabel = 'Overdue ($overdueDays days)';
-    }
-
-    Color statusBg = AppColors.statusWarningBg;
-    Color statusTextColor = const Color(0xFFB45309);
-    if (status == 'paid') {
-      statusBg = AppColors.statusSuccessBg;
-      statusTextColor = AppColors.statusSuccess;
-    } else if (status == 'overdue') {
+      statusBadgeText = 'Overdue${days > 0 ? " ($days days)" : ""}';
       statusBg = AppColors.statusDangerBg;
       statusTextColor = AppColors.statusDanger;
+    } else if (!isPaid) {
+      statusBadgeText = 'Pending';
+      statusBg = AppColors.statusWarningBg;
+      statusTextColor = const Color(0xFFB45309);
     }
 
     return Card(
       elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: isDark ? AppColors.darkCard : Colors.white,
-      child: InkWell(
-        onTap: () => _openFeeDetailsModal(item),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.primaryIndigo.withOpacity(0.12),
-                child: Text(
-                  (item['student_name'] ?? 'S').substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.primaryIndigo,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Student Name & Status Badge (Matching screenshot)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    studentName,
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['student_name'] ?? 'Student',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: statusTextColor.withOpacity(0.5)),
+                  ),
+                  child: Text(
+                    statusBadgeText,
+                    style: TextStyle(
+                      color: statusTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Desk ${item['seat_number'] ?? 'N/A'} • ${item['shift_name'] ?? 'Shift'}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Next Due: ${item['due_date'] ?? '2026-09-10'}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: status == 'overdue' ? AppColors.statusDanger : Colors.grey,
-                        fontWeight: status == 'overdue' ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Row 2: Desk & Shift (Matching screenshot icon styling)
+            Row(
+              children: [
+                const Icon(Icons.event_seat_rounded, size: 16, color: AppColors.primaryIndigo),
+                const SizedBox(width: 4),
+                Text(
+                  'Desk $seatNumber',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(width: 12),
+                Icon(Icons.schedule_rounded, size: 16, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    shiftName,
+                    style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+
+            // Row 3: Monthly Fee, Next Due, Cycle & Direct Action Buttons (Matching screenshot!)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Monthly Fee: ₹${amount.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Next Due: $dueDate',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isOverdue ? AppColors.statusDanger : Colors.grey,
+                          fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      Text(
+                        'Cycle: $cycle ${isPaid ? "(Advance)" : ""}',
+                        style: const TextStyle(fontSize: 11, color: AppColors.primaryIndigo, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // History Button
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.history_rounded, size: 14),
+                      label: const Text('History'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryIndigo,
+                        side: const BorderSide(color: AppColors.primaryIndigo),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () => _openStudentHistoryModal(item),
                     ),
+                    const SizedBox(width: 8),
+
+                    // Context Button: Collect Fee (Green) if unpaid / Advance (Blue) if paid!
+                    if (!isPaid)
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.payments_rounded, size: 14, color: Colors.white),
+                        label: const Text('Collect Fee'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.statusSuccess,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        onPressed: () => _openRecordPaymentModal(item, isAdvance: false),
+                      )
+                    else
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.flash_on_rounded, size: 14, color: Colors.white),
+                        label: const Text('Advance'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryIndigo,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        onPressed: () => _openRecordPaymentModal(item, isAdvance: true),
+                      ),
                   ],
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  displayLabel,
-                  style: TextStyle(
-                    color: statusTextColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
     );
