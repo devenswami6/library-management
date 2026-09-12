@@ -35,6 +35,10 @@ try {
         $present_today = $pdo->query("SELECT COUNT(DISTINCT user_id) FROM attendance WHERE date = '$today' AND status = 'present'")->fetchColumn();
         $currently_inside = $pdo->query("SELECT COUNT(DISTINCT user_id) FROM attendance WHERE date = '$today' AND check_out_time IS NULL")->fetchColumn();
 
+        $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
+        if ($admin_id <= 0) $admin_id = 1;
+        $unread_chats = (int)$pdo->query("SELECT COUNT(*) FROM chat_messages WHERE (receiver_id = $admin_id OR receiver_id = 1 OR receiver_id = 0) AND (is_read = 0 OR is_read IS NULL)")->fetchColumn();
+
         echo json_encode([
             'success' => true,
             'stats' => [
@@ -42,7 +46,8 @@ try {
                 'pending_students' => (int)$pending_students,
                 'total_seats' => (int)$total_seats,
                 'present_today' => (int)$present_today,
-                'currently_inside' => (int)$currently_inside
+                'currently_inside' => (int)$currently_inside,
+                'unread_chats_count' => (int)$unread_chats
             ]
         ]);
         exit();

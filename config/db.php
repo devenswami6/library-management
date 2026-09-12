@@ -17,6 +17,12 @@ try {
     die("Database Connection Error: " . $e->getMessage());
 }
 
+if (!class_exists('ApiConfig')) {
+    class ApiConfig {
+        public static $baseUrl = 'https://library-management-hmwx.onrender.com';
+    }
+}
+
 // Function to initialize database tables and seed data if empty
 function init_database($pdo) {
     // 1. Users table (Admin & Students)

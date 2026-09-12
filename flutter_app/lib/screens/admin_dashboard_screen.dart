@@ -110,9 +110,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primaryIndigo),
-                            onPressed: () => Navigator.of(context).pushNamed('/notification_hub'),
+                          Stack(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primaryIndigo),
+                                onPressed: () => Navigator.of(context).pushNamed('/notification_hub'),
+                              ),
+                              if ((_stats?['unread_chats_count'] ?? 0) > 0)
+                                Positioned(
+                                  right: 6,
+                                  top: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '${_stats!['unread_chats_count']}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),
@@ -207,6 +227,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           label: 'Notifications',
                           icon: Icons.notifications_rounded,
                           color: AppColors.primaryIndigo,
+                          badgeCount: _stats?['unread_chats_count'] ?? 0,
                           onTap: () => Navigator.of(context).pushNamed('/notification_hub'),
                         ),
                       ],
@@ -234,6 +255,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       subtitle: 'Chat 1-on-1 directly with registered students',
                       icon: Icons.chat_bubble_rounded,
                       color: const Color(0xFF0EA5E9),
+                      badgeCount: _stats?['unread_chats_count'] ?? 0,
                       onTap: () => Navigator.of(context).pushNamed('/admin_chat_threads'),
                     ),
                     const SizedBox(height: 10),
@@ -423,6 +445,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    int badgeCount = 0,
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -441,9 +464,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           child: Icon(icon, color: color, size: 24),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+            if (badgeCount > 0)
+              Container(
+                margin: const EdgeInsets.only(left: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$badgeCount Unread',
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
         ),
         subtitle: Text(
           subtitle,
