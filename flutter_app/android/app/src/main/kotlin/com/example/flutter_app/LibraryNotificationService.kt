@@ -1,5 +1,6 @@
 package com.example.flutter_app
 
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,6 +13,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
@@ -26,6 +29,7 @@ class LibraryNotificationService : Service() {
     private val shownNotifIds = mutableSetOf<Int>()
     private var isRunning = false
     private var lastAutoCheckoutTime: Long = 0
+    private var wakeLock: PowerManager.WakeLock? = null
 
     companion object {
         const val CHANNEL_ID_FOREGROUND = "library_fg_service_channel"
@@ -78,6 +82,8 @@ class LibraryNotificationService : Service() {
         super.onCreate()
         try {
             createNotificationChannels()
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "LibraryApp::NotifServiceWakeLock")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -92,9 +98,10 @@ class LibraryNotificationService : Service() {
         try {
             val notification = NotificationCompat.Builder(this, CHANNEL_ID_FOREGROUND)
                 .setContentTitle("Self-Study Library")
-                .setContentText("Active Attendance & Geofence Guard")
+                .setContentText("Active Attendance & Notice Guard")
                 .setSmallIcon(getAppIconRes())
-                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .setOngoing(true)
                 .build()
 
@@ -128,6 +135,30 @@ class LibraryNotificationService : Service() {
         return START_STICKY
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        // AUTO-RESTART SERVICE WHEN USER SWIPES AWAY / KILLS APP FROM RECENT TASKS!
+        try {
+            val restartServiceIntent = Intent(applicationContext, LibraryNotificationService::class.java).apply {
+                setPackage(packageName)
+            }
+            val restartServicePendingIntent = PendingIntent.getService(
+                applicationContext,
+                1,
+                restartServiceIntent,
+                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val alarmService = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmService.set(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + 1000,
+                restartServicePendingIntent
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun loadShownIdsFromPrefs() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val saved = prefs.getStringSet(KEY_SHOWN_IDS, emptySet()) ?: emptySet()
@@ -147,14 +178,19 @@ class LibraryNotificationService : Service() {
         handler.post(object : Runnable {
             override fun run() {
                 checkNotificationsAndGeofenceInBackground()
-                handler.postDelayed(this, 10000) // Poll every 10 seconds for instant background notice alerts
+                handler.postDelayed(this, 10000) // Poll every 10 seconds for background notifications
             }
         })
     }
 
     private fun checkNotificationsAndGeofenceInBackground() {
         executor.execute {
+            var acquiredWakeLock = false
             try {
+                if (wakeLock != null && !wakeLock!!.isHeld) {
+                    wakeLock?.acquire(4000)
+                    acquiredWakeLock = true
+                }
                 loadShownIdsFromPrefs()
                 val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val userId = prefs.getInt(KEY_USER_ID, 0)
@@ -186,7 +222,6 @@ class LibraryNotificationService : Service() {
                                 val body = if (rawMsg.isNotBlank()) rawMsg else title
                                 val isRead = item.optInt("is_read", 0) == 1 || item.optBoolean("is_read", false)
 
-                                // For broadcast (notifUserId == 0), don't require isRead=false from server
                                 if (id > 0 && (!isRead || notifUserId == 0)) {
                                     if (!shownNotifIds.contains(id)) {
                                         shownNotifIds.add(id)
@@ -246,6 +281,12 @@ class LibraryNotificationService : Service() {
                 adminConn.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
+                if (acquiredWakeLock && wakeLock != null && wakeLock!!.isHeld) {
+                    try {
+                        wakeLock?.release()
+                    } catch (e: Exception) {}
+                }
             }
         }
     }
@@ -261,13 +302,11 @@ class LibraryNotificationService : Service() {
             }
 
             if (!isGpsEnabled) {
-                // Anti-Cheat: GPS is OFF while student is checked in!
                 lastAutoCheckoutTime = System.currentTimeMillis()
                 performAutoCheckout(baseUrl, userId, "GPS Location was turned OFF on your phone while checked-in.")
                 return
             }
 
-            // Fetch location and check 50m radius
             val location = getLastKnownLocation(locationManager)
             if (location != null) {
                 val targetLat = 28.0087395
