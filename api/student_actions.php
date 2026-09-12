@@ -100,6 +100,21 @@ if ($action === 'submit_complaint') {
     $stmt = $pdo->prepare("INSERT INTO complaints (user_id, category, subject, description, status) VALUES (?, ?, ?, ?, 'open')");
     $stmt->execute([$user['id'], $category, $subject, $description]);
 
+    // Dispatch instant alert notification to Admin
+    try {
+        $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
+        if ($admin_id <= 0) $admin_id = 1;
+
+        $stu_name = $user['name'] ?? ('Student #' . $user['id']);
+
+        $stmt_notif = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+        $stmt_notif->execute([
+            $admin_id,
+            "⚠️ New Complaint: " . $stu_name,
+            "[$category] $subject: $description"
+        ]);
+    } catch (Exception $e) {}
+
     header("Location: ../student_dashboard.php?tab=tabSupport&msg=" . urlencode("Complaint ticket submitted successfully! Admin will resolve it shortly."));
     exit();
 }

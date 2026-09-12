@@ -869,10 +869,14 @@ try {
         exit();
 
     } elseif ($action === 'get_admin_notifications') {
-        // Fetch new pending student registrations, open support tickets, and unread direct chat messages for Admin phone notifications
+        // Fetch new pending student registrations, open support tickets, unread direct chat messages, and admin notifications
+        $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
+        if ($admin_id <= 0) $admin_id = 1;
+
         $pending = $pdo->query("SELECT id, name, phone, created_at FROM users WHERE role = 'student' AND status = 'pending' ORDER BY id DESC LIMIT 5")->fetchAll();
-        $open_complaints = $pdo->query("SELECT c.id, c.subject, c.category, u.name as student_name, c.created_at FROM complaints c JOIN users u ON c.user_id = u.id WHERE c.status = 'open' ORDER BY c.id DESC LIMIT 5")->fetchAll();
-        $unread_chats = $pdo->query("SELECT m.id, m.message, m.sender_id, u.name as student_name, m.created_at FROM chat_messages m JOIN users u ON m.sender_id = u.id WHERE (m.receiver_id = 1 OR m.receiver_id = 0) AND m.is_read = 0 ORDER BY m.id DESC LIMIT 5")->fetchAll();
+        $open_complaints = $pdo->query("SELECT c.id, c.subject, c.category, u.name as student_name, c.created_at FROM complaints c JOIN users u ON c.user_id = u.id WHERE (c.status IS NULL OR c.status = '' OR c.status = 'open') ORDER BY c.id DESC LIMIT 5")->fetchAll();
+        $unread_chats = $pdo->query("SELECT m.id, m.message, m.sender_id, u.name as student_name, m.created_at FROM chat_messages m JOIN users u ON m.sender_id = u.id WHERE (m.receiver_id = $admin_id OR m.receiver_id = 1 OR m.receiver_id = 0) AND (m.is_read = 0 OR m.is_read IS NULL) ORDER BY m.id DESC LIMIT 5")->fetchAll();
+        $direct_notifs = $pdo->query("SELECT id, title, message, created_at FROM notifications WHERE user_id = $admin_id OR user_id = 0 ORDER BY id DESC LIMIT 5")->fetchAll();
 
         $admin_notifs = [];
 
@@ -903,6 +907,16 @@ try {
                 'title' => "💬 New Direct Message from {$ch['student_name']}",
                 'message' => $ch['message'],
                 'created_at' => $ch['created_at']
+            ];
+        }
+
+        foreach ($direct_notifs as $dn) {
+            $admin_notifs[] = [
+                'id' => 4000000 + (int)$dn['id'],
+                'type' => 'notice',
+                'title' => $dn['title'],
+                'message' => $dn['message'],
+                'created_at' => $dn['created_at']
             ];
         }
 

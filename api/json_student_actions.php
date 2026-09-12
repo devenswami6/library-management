@@ -222,8 +222,24 @@ try {
             exit();
         }
 
-        $stmt_comp = $pdo->prepare("INSERT INTO complaints (user_id, category, subject, description) VALUES (?, ?, ?, ?)");
+        $stmt_comp = $pdo->prepare("INSERT INTO complaints (user_id, category, subject, description, status) VALUES (?, ?, ?, ?, 'open')");
         $stmt_comp->execute([$user_id, $category, $subject, $description]);
+
+        // Dispatch instant alert notification to Admin
+        try {
+            $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
+            if ($admin_id <= 0) $admin_id = 1;
+
+            $stu = $pdo->query("SELECT name FROM users WHERE id = $user_id")->fetch(PDO::FETCH_ASSOC);
+            $stu_name = $stu['name'] ?? ('Student #' . $user_id);
+
+            $stmt_notif = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+            $stmt_notif->execute([
+                $admin_id,
+                "⚠️ New Complaint: " . $stu_name,
+                "[$category] $subject: $description"
+            ]);
+        } catch (Exception $e) {}
 
         echo json_encode(['success' => true, 'message' => 'Your complaint/feedback has been submitted to Admin.']);
         exit();
@@ -286,6 +302,19 @@ try {
 
         $stmt = $pdo->prepare("INSERT INTO chat_messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
         $stmt->execute([$user_id, $admin_id, $msg_text]);
+
+        // Dispatch instant alert notification to Admin
+        try {
+            $stu = $pdo->query("SELECT name FROM users WHERE id = $user_id")->fetch(PDO::FETCH_ASSOC);
+            $stu_name = $stu['name'] ?? ('Student #' . $user_id);
+
+            $stmt_notif = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+            $stmt_notif->execute([
+                $admin_id,
+                "💬 New Message from " . $stu_name,
+                $msg_text
+            ]);
+        } catch (Exception $e) {}
 
         echo json_encode(['success' => true, 'message_id' => $pdo->lastInsertId()]);
         exit();
