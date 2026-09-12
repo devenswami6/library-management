@@ -249,10 +249,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                     _buildAdminMenuCard(
                       title: 'Support Tickets Desk 🎧',
-                      subtitle: 'Review & resolve student support requests (48h auto purge)',
+                      subtitle: 'Review & resolve student support requests (30-day auto purge)',
                       icon: Icons.support_agent_rounded,
                       color: const Color(0xFFF59E0B),
                       onTap: () => Navigator.of(context).pushNamed('/manage_complaints'),
+                    ),
+                    const SizedBox(height: 10),
+
+                    _buildAdminMenuCard(
+                      title: 'Database Backup & System Health 💾',
+                      subtitle: 'Download SQLite database backup file (.sqlite) directly to mobile',
+                      icon: Icons.storage_rounded,
+                      color: const Color(0xFF10B981),
+                      onTap: () => Navigator.of(context).pushNamed('/db_backup'),
                     ),
                     const SizedBox(height: 24),
 
