@@ -673,6 +673,26 @@ try {
         ]);
         exit();
 
+    } elseif ($action === 'restore_db') {
+        if (isset($_FILES['backup_file']) && $_FILES['backup_file']['error'] === UPLOAD_ERR_OK) {
+            $tmp_name = $_FILES['backup_file']['tmp_name'];
+            $db_file = __DIR__ . '/../library.db';
+            try {
+                $test_pdo = new PDO("sqlite:" . $tmp_name);
+                $test_pdo->query("SELECT COUNT(*) FROM users");
+                $test_pdo = null;
+                $pdo = null;
+
+                copy($tmp_name, $db_file);
+                echo json_encode(['success' => true, 'message' => 'Database successfully restored from backup!']);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Invalid database backup file: ' . $e->getMessage()]);
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => 'No database backup file uploaded.']);
+        }
+        exit();
+
     } elseif ($action === 'get_admin_chat_threads') {
         try {
             $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
