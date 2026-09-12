@@ -20,12 +20,14 @@ class StudentDashboardScreen extends StatefulWidget {
   _StudentDashboardScreenState createState() => _StudentDashboardScreenState();
 }
 
-class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
+class _StudentDashboardScreenState extends State<StudentDashboardScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   Map<String, dynamic>? _dashboardData;
   Timer? _timer;
   Timer? _geofenceTimer;
   String _currentTime = '';
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -33,12 +35,22 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     _loadData();
     _startClock();
     _startGeofenceMonitor();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _geofenceTimer?.cancel();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -523,19 +535,50 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
-                                          ? null
-                                          : _handleCheckIn,
-                                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                                      label: const Text('Check In'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primaryIndigo,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                    ),
+                                    child: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
+                                        ? ElevatedButton.icon(
+                                            onPressed: null,
+                                            icon: const Icon(Icons.check_circle_rounded, size: 16, color: Colors.white70),
+                                            label: const Text('Checked In', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.grey.shade700,
+                                              disabledBackgroundColor: Colors.grey.shade700,
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                          )
+                                        : AnimatedBuilder(
+                                            animation: _pulseController,
+                                            builder: (context, child) {
+                                              return Transform.scale(
+                                                scale: _pulseAnimation.value,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(10),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: const Color(0xFF10B981).withOpacity(0.5 * _pulseController.value + 0.2),
+                                                        blurRadius: 10.0 * _pulseController.value + 4.0,
+                                                        spreadRadius: 2.0 * _pulseController.value + 0.5,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: ElevatedButton.icon(
+                                                    onPressed: _handleCheckIn,
+                                                    icon: const Icon(Icons.login_rounded, size: 16, color: Colors.white),
+                                                    label: const Text('Check In', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: const Color(0xFF10B981), // Vibrant Green
+                                                      foregroundColor: Colors.white,
+                                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                                      elevation: 4,
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -543,11 +586,19 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                       onPressed: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
                                           ? _handleCheckOut
                                           : null,
-                                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                                      label: const Text('Check Out'),
+                                      icon: const Icon(Icons.logout_rounded, size: 16),
+                                      label: const Text('Check Out', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppColors.primaryIndigo,
-                                        side: const BorderSide(color: AppColors.primaryIndigo),
+                                        foregroundColor: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
+                                            ? Colors.redAccent
+                                            : Colors.grey.shade500,
+                                        disabledForegroundColor: Colors.grey.shade500,
+                                        side: BorderSide(
+                                          color: attProvider.todayAttendance?.isCurrentlyCheckedIn == true
+                                              ? Colors.redAccent
+                                              : Colors.grey.shade400,
+                                          width: 1.5,
+                                        ),
                                         padding: const EdgeInsets.symmetric(vertical: 12),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
