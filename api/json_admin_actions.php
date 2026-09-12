@@ -625,7 +625,19 @@ try {
         ]);
         exit();
 
-    } elseif ($action === 'backup_db' || $action === 'get_database_backup_info') {
+    } elseif ($action === 'backup_db') {
+        $db_file = __DIR__ . '/../library.db';
+        if (!file_exists($db_file)) {
+            die("Database file not found.");
+        }
+        $filename = "library_backup_" . date('Y-m-d_H-i-s') . ".sqlite";
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($db_file));
+        readfile($db_file);
+        exit();
+
+    } elseif ($action === 'get_database_backup_info') {
         $db_file = __DIR__ . '/../library.db';
         if (!file_exists($db_file)) {
             echo json_encode(['success' => false, 'message' => 'Database file not found.']);
@@ -652,7 +664,7 @@ try {
             'db_size_bytes' => filesize($db_file),
             'db_size_formatted' => round(filesize($db_file) / 1024, 2) . " KB",
             'table_counts' => $counts,
-            'backup_url' => "$base_url/api/admin_actions.php?action=backup_db"
+            'backup_url' => "$base_url/api/json_admin_actions.php?action=backup_db"
         ]);
         exit();
 
@@ -874,6 +886,15 @@ try {
         exit();
 
     } elseif ($action === 'get_admin_notifications') {
+        $req_user_id = (int)($_GET['user_id'] ?? ($_POST['user_id'] ?? 0));
+        if ($req_user_id > 0) {
+            $user_role = $pdo->query("SELECT role FROM users WHERE id = $req_user_id")->fetchColumn();
+            if ($user_role !== 'admin') {
+                echo json_encode(['success' => true, 'admin_notifications' => []]);
+                exit();
+            }
+        }
+
         // Fetch new pending student registrations, open support tickets, unread direct chat messages, and admin notifications
         $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
         if ($admin_id <= 0) $admin_id = 1;
