@@ -687,32 +687,38 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                     ),
                     const SizedBox(width: 8),
 
-                    // Context Button: Collect Fee (Green) if unpaid / Advance (Blue) if paid!
+                    // Context Button: Collect Fee (Green) if unpaid / Advance Pay (Blue) if paid!
                     if (!isPaid)
                       ElevatedButton.icon(
                         icon: const Icon(Icons.payments_rounded, size: 14, color: Colors.white),
-                        label: const Text('Collect Fee'),
+                        label: const Text(
+                          'Collect Fee',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.statusSuccess,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                         onPressed: () => _openRecordPaymentModal(item, isAdvance: false),
                       )
                     else
                       ElevatedButton.icon(
                         icon: const Icon(Icons.flash_on_rounded, size: 14, color: Colors.white),
-                        label: const Text('Advance'),
+                        label: const Text(
+                          'Advance Pay',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryIndigo,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                         onPressed: () => _openRecordPaymentModal(item, isAdvance: true),
                       ),

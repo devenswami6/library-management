@@ -265,23 +265,27 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                                           ),
                                           const SizedBox(height: 6),
                                           isPresent
-                                              ? ElevatedButton(
+                                              ? ElevatedButton.icon(
+                                                  icon: const Icon(Icons.logout_rounded, size: 14, color: Colors.white),
+                                                  label: const Text('Check Out', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: AppColors.statusSuccess,
-                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                                    backgroundColor: AppColors.statusDanger,
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                                   ),
                                                   onPressed: () => _toggleAttendance(studentId, 'checkout'),
-                                                  child: const Text('Check Out', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                                 )
-                                              : ElevatedButton(
+                                              : ElevatedButton.icon(
+                                                  icon: const Icon(Icons.login_rounded, size: 14, color: Colors.white),
+                                                  label: const Text('Check In', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: AppColors.primaryIndigo,
-                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                                    backgroundColor: AppColors.statusSuccess,
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                                   ),
                                                   onPressed: () => _toggleAttendance(studentId, 'checkin'),
-                                                  child: const Text('Check In', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                                 ),
                                         ],
                                       ),

@@ -72,6 +72,19 @@ function init_database($pdo) {
             $pdo->prepare("DELETE FROM users WHERE id IN ($in_clause)")->execute($old_ids);
         }
     } catch (Exception $e) {}
+    try {
+        $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+    } catch (Exception $e) {}
+
+    // Auto-purge Notifications older than 2 days (48 hours)
+    try {
+        $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
+    } catch (Exception $e) {}
+
+    // Auto-purge Help Complaints/Tickets older than 2 days (48 hours)
+    try {
+        $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-2 days')");
+    } catch (Exception $e) {}
 
     // 2. Shifts table
     $pdo->exec("CREATE TABLE IF NOT EXISTS shifts (
