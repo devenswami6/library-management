@@ -642,13 +642,17 @@ try {
             }
         }
 
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+        $host = $_SERVER['HTTP_HOST'] ?? 'library-management-hmwx.onrender.com';
+        $base_url = "$protocol://$host";
+
         echo json_encode([
             'success' => true,
             'filename' => "library_backup_" . date('Y-m-d_H-i-s') . ".sqlite",
             'db_size_bytes' => filesize($db_file),
             'db_size_formatted' => round(filesize($db_file) / 1024, 2) . " KB",
             'table_counts' => $counts,
-            'backup_url' => ApiConfig::$baseUrl . "/api/admin_actions.php?action=backup_db"
+            'backup_url' => "$base_url/api/admin_actions.php?action=backup_db"
         ]);
         exit();
 
@@ -663,20 +667,21 @@ try {
         if ($admin_id <= 0) $admin_id = 1;
 
         $stmt = $pdo->query("
-            SELECT u.id as student_id, u.name as student_name, u.phone as student_phone, s.seat_number,
+            SELECT u.id as student_id, u.name as student_name, u.phone, s.seat_number, sh.name as shift_name,
                    (SELECT message FROM chat_messages 
-                    WHERE (sender_id = u.id AND receiver_id = $admin_id) OR (sender_id = $admin_id AND receiver_id = u.id)
+                    WHERE (sender_id = u.id AND receiver_id = $admin_id) OR (sender_id = $admin_id AND receiver_id = u.id) 
                     ORDER BY id DESC LIMIT 1) as last_message,
                    (SELECT created_at FROM chat_messages 
-                    WHERE (sender_id = u.id AND receiver_id = $admin_id) OR (sender_id = $admin_id AND receiver_id = u.id)
+                    WHERE (sender_id = u.id AND receiver_id = $admin_id) OR (sender_id = $admin_id AND receiver_id = u.id) 
                     ORDER BY id DESC LIMIT 1) as last_message_time,
                    (SELECT COUNT(*) FROM chat_messages 
                     WHERE sender_id = u.id AND receiver_id = $admin_id AND is_read = 0) as unread_count
             FROM users u
             LEFT JOIN allocations a ON u.id = a.user_id AND a.status = 'active'
             LEFT JOIN seats s ON a.seat_id = s.id
-            WHERE u.role = 'student'
-            ORDER BY (CASE WHEN last_message_time IS NULL THEN 1 ELSE 0 END), last_message_time DESC, u.name ASC
+            LEFT JOIN shifts sh ON a.shift_id = sh.id
+            WHERE u.role = 'student' AND (u.is_deleted IS NULL OR u.is_deleted = 0)
+            ORDER BY last_message_time DESC, u.name ASC
         ");
         $threads = $stmt->fetchAll();
 

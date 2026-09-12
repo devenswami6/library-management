@@ -34,15 +34,23 @@ class _DbBackupScreenState extends State<DbBackupScreen> {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            _backupData = data;
-            _isLoading = false;
-          });
+        final bodyText = response.body.trim();
+        if (bodyText.startsWith('{')) {
+          final data = json.decode(bodyText);
+          if (data['success'] == true) {
+            setState(() {
+              _backupData = data;
+              _isLoading = false;
+            });
+          } else {
+            setState(() {
+              _errorMessage = data['message'] ?? 'Failed to load backup data.';
+              _isLoading = false;
+            });
+          }
         } else {
           setState(() {
-            _errorMessage = data['message'] ?? 'Failed to load backup data.';
+            _errorMessage = 'Server response error: ${bodyText.length > 80 ? bodyText.substring(0, 80) : bodyText}';
             _isLoading = false;
           });
         }

@@ -214,7 +214,7 @@ class LibraryNotificationService : Service() {
                 connection.disconnect()
 
                 // 3. Poll Admin Notifications (New Student Registrations, Support Tickets, Direct Student Messages)
-                val adminUrl = URL("$baseUrl/api/json_admin_actions.php?action=get_admin_notifications")
+                val adminUrl = URL("$baseUrl/api/json_admin_actions.php?action=get_admin_notifications&user_id=$userId")
                 val adminConn = adminUrl.openConnection() as HttpURLConnection
                 adminConn.requestMethod = "GET"
                 adminConn.connectTimeout = 4000
