@@ -24,6 +24,7 @@ import 'screens/student_fee_screen.dart';
 import 'screens/student_chat_screen.dart';
 import 'screens/admin_chat_threads_screen.dart';
 import 'screens/manage_students_screen.dart';
+import 'screens/manage_shifts_screen.dart';
 
 import 'package:workmanager/workmanager.dart';
 import 'services/notification_service.dart';
@@ -223,6 +224,7 @@ class StudyLibraryApp extends StatelessWidget {
         '/student_chat': (context) => const StudentChatScreen(),
         '/admin_chat_threads': (context) => const AdminChatThreadsScreen(),
         '/manage_students': (context) => const ManageStudentsScreen(),
+        '/manage_shifts': (context) => const ManageShiftsScreen(),
       },
     );
   }

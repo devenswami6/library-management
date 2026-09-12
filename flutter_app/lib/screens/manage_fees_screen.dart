@@ -636,6 +636,7 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                             ],
                           ),
                         ],
+                      ),
                     ),
                     const SizedBox(height: 14),
 

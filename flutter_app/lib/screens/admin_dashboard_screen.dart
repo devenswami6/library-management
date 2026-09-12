@@ -239,6 +239,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     const SizedBox(height: 10),
 
                     _buildAdminMenuCard(
+                      title: 'Manage Shift Timings & Fees ⏰',
+                      subtitle: 'Create shifts, set timings (Morning/Evening) & monthly rates',
+                      icon: Icons.schedule_rounded,
+                      color: const Color(0xFF8B5CF6),
+                      onTap: () => Navigator.of(context).pushNamed('/manage_shifts'),
+                    ),
+                    const SizedBox(height: 10),
+
+                    _buildAdminMenuCard(
                       title: 'Support Tickets Desk 🎧',
                       subtitle: 'Review & resolve student support requests (48h auto purge)',
                       icon: Icons.support_agent_rounded,

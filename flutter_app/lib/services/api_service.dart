@@ -547,4 +547,80 @@ class ApiService {
       return {'success': false, 'message': 'Failed to fetch 12-month master report: $e'};
     }
   }
+
+  // Shift Management Methods
+  static Future<Map<String, dynamic>> getAllShiftsAdmin() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_shifts'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to fetch shifts: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> addShift({
+    required String name,
+    required String startTime,
+    required String endTime,
+    required double feeAmount,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'add_shift',
+          'name': name,
+          'start_time': startTime,
+          'end_time': endTime,
+          'fee_amount': feeAmount.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to add new shift: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> editShift({
+    required int shiftId,
+    required String name,
+    required String startTime,
+    required String endTime,
+    required double feeAmount,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'edit_shift',
+          'shift_id': shiftId.toString(),
+          'name': name,
+          'start_time': startTime,
+          'end_time': endTime,
+          'fee_amount': feeAmount.toString(),
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to update shift: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> toggleShift(int shiftId, bool isActive) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'toggle_shift',
+          'shift_id': shiftId.toString(),
+          'is_active': isActive ? '1' : '0',
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to toggle shift status: $e'};
+    }
+  }
 }

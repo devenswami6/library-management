@@ -271,6 +271,70 @@ try {
         ]);
         exit();
 
+    } elseif ($action === 'get_shifts') {
+        $stmt = $pdo->query("
+            SELECT sh.*, COUNT(a.id) as active_students_count
+            FROM shifts sh
+            LEFT JOIN allocations a ON sh.id = a.shift_id AND a.status = 'active'
+            GROUP BY sh.id
+            ORDER BY sh.id ASC
+        ");
+        $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['success' => true, 'shifts' => $shifts]);
+        exit();
+
+    } elseif ($action === 'add_shift') {
+        $name = trim($_POST['name'] ?? '');
+        $start_time = trim($_POST['start_time'] ?? '');
+        $end_time = trim($_POST['end_time'] ?? '');
+        $fee_amount = (float)($_POST['fee_amount'] ?? 0);
+
+        if (empty($name) || empty($start_time) || empty($end_time) || $fee_amount <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Please provide valid shift name, start time, end time, and fee amount.']);
+            exit();
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO shifts (name, start_time, end_time, fee_amount, is_active) VALUES (?, ?, ?, ?, 1)");
+        $stmt->execute([$name, $start_time, $end_time, $fee_amount]);
+
+        echo json_encode(['success' => true, 'message' => "New Shift '$name' added successfully!"]);
+        exit();
+
+    } elseif ($action === 'edit_shift') {
+        $shift_id = (int)($_POST['shift_id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        $start_time = trim($_POST['start_time'] ?? '');
+        $end_time = trim($_POST['end_time'] ?? '');
+        $fee_amount = (float)($_POST['fee_amount'] ?? 0);
+
+        if (!$shift_id || empty($name) || empty($start_time) || empty($end_time) || $fee_amount <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Please fill in all required shift fields correctly.']);
+            exit();
+        }
+
+        $stmt = $pdo->prepare("UPDATE shifts SET name = ?, start_time = ?, end_time = ?, fee_amount = ? WHERE id = ?");
+        $stmt->execute([$name, $start_time, $end_time, $fee_amount, $shift_id]);
+
+        echo json_encode(['success' => true, 'message' => "Shift '$name' details updated successfully!"]);
+        exit();
+
+    } elseif ($action === 'toggle_shift') {
+        $shift_id = (int)($_POST['shift_id'] ?? 0);
+        $is_active = (int)($_POST['is_active'] ?? 1);
+
+        if (!$shift_id) {
+            echo json_encode(['success' => false, 'message' => 'Shift ID is required.']);
+            exit();
+        }
+
+        $stmt = $pdo->prepare("UPDATE shifts SET is_active = ? WHERE id = ?");
+        $stmt->execute([$is_active, $shift_id]);
+
+        $status_text = ($is_active == 1) ? 'activated' : 'deactivated';
+        echo json_encode(['success' => true, 'message' => "Shift has been $status_text."]);
+        exit();
+
     } elseif ($action === 'admin_attendance_toggle') {
         $student_id = (int)($_POST['student_id'] ?? 0);
         $toggle_type = trim($_POST['toggle_type'] ?? 'checkin'); // checkin or checkout
