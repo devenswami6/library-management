@@ -174,9 +174,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
     final attProvider = Provider.of<AttendanceProvider>(context, listen: false);
     final success = await attProvider.checkIn(user.id);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(attProvider.message ?? 'Check-in response')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(attProvider.message ?? 'Check-in processed'),
+          backgroundColor: success ? const Color(0xFF10B981) : Colors.redAccent,
+        ),
+      );
+    }
     _loadData();
   }
 
@@ -187,9 +192,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
     final attProvider = Provider.of<AttendanceProvider>(context, listen: false);
     final success = await attProvider.checkOut(user.id);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(attProvider.message ?? 'Check-out response')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(attProvider.message ?? 'Check-out processed'),
+          backgroundColor: success ? const Color(0xFF10B981) : Colors.redAccent,
+        ),
+      );
+    }
     _loadData();
   }
 
