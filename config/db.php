@@ -209,9 +209,13 @@ function init_database($pdo) {
     // Seed Admin User
     $admin_count = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
     if ($admin_count == 0) {
-        $admin_pass = password_hash('admin123', PASSWORD_DEFAULT);
+        $admin_pass = password_hash('admin2003', PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("INSERT INTO users (name, email, phone, password, role, status) VALUES (?, ?, ?, ?, 'admin', 'approved')");
         $stmt->execute(['Library Owner Admin', 'admin@library.com', '9876543210', $admin_pass]);
+    } else {
+        // Ensure active admin password hash is updated to admin2003
+        $new_admin_pass = password_hash('admin2003', PASSWORD_DEFAULT);
+        $pdo->prepare("UPDATE users SET password = ? WHERE role = 'admin' AND email = 'admin@library.com'")->execute([$new_admin_pass]);
     }
 
     // Seed Sample Students

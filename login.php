@@ -53,22 +53,6 @@ $shifts = $pdo->query("SELECT * FROM shifts WHERE is_active = 1")->fetchAll();
                     <i class="fas fa-sign-in-alt"></i> Account Login
                 </button>
             </form>
-
-            <div style="margin-top: 24px; padding: 16px; background: var(--bg-surface-elevated); border-radius: var(--radius-md); font-size: 0.85rem; border: 1px solid var(--border-color);">
-                <p style="font-weight: 600; color: var(--accent-primary); margin-bottom: 6px;"><i class="fas fa-key"></i> Quick Demo Accounts:</p>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <strong>Admin Panel:</strong><br>
-                        Email: <code>admin@library.com</code><br>
-                        Pass: <code>admin123</code>
-                    </div>
-                    <div>
-                        <strong>Student Portal:</strong><br>
-                        Email: <code>rahul@gmail.com</code><br>
-                        Pass: <code>student123</code>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- REGISTER TAB -->

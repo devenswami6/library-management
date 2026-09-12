@@ -1,6 +1,42 @@
 // assets/js/main.js - Interactive Scripts with Notification Dropdown & Light/Dark Theme Switcher
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 0. Disable Right Click & Inspect Element Shortcuts Security Lock
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
+    });
+
+    document.addEventListener('keydown', (e) => {
+        // F12 Key
+        if (e.keyCode === 123 || e.key === 'F12') {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+        // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element Picker)
+        if (e.ctrlKey && e.shiftKey && (
+            e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67 ||
+            e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c'
+        )) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+        // Ctrl+U (View Source)
+        if (e.ctrlKey && (e.keyCode === 85 || e.key === 'U' || e.key === 'u')) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+        // Ctrl+S (Save Page)
+        if (e.ctrlKey && (e.keyCode === 83 || e.key === 'S' || e.key === 's')) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    });
+
     // 1. Light / Dark Theme Switcher Logic
     const themeBtn = document.getElementById('themeToggleBtn');
     const htmlElem = document.documentElement;
