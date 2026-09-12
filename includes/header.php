@@ -37,6 +37,62 @@ if (is_logged_in()) {
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/style.css">
+
+    <!-- Anti-Inspect & DevTools Lock Security Script -->
+    <script>
+    (function() {
+        // 1. Disable Right Click Context Menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        }, true);
+
+        // 2. Disable Keyboard Shortcuts (F12, Inspect, Console, View Source, Save)
+        document.addEventListener('keydown', function(e) {
+            if (
+                e.keyCode === 123 || e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67 || e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+                (e.ctrlKey && (e.keyCode === 85 || e.key === 'U' || e.key === 'u')) ||
+                (e.ctrlKey && (e.keyCode === 83 || e.key === 'S' || e.key === 's')) ||
+                (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c'))
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, true);
+
+        // 3. Disable Dragging & Selection
+        document.addEventListener('dragstart', function(e) { e.preventDefault(); }, true);
+
+        // 4. DevTools Active Debugger Trap & Freeze
+        setInterval(function() {
+            var startTime = performance.now();
+            (function() {}.constructor('debugger')());
+            var endTime = performance.now();
+            if (endTime - startTime > 100) {
+                if (document.body) {
+                    document.body.innerHTML = '<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#0f172a; color:#f87171; font-family:sans-serif; text-align:center; padding:20px;">' +
+                        '<h1 style="font-size:32px; margin-bottom:10px;">🔒 Security Lock Active</h1>' +
+                        '<p style="font-size:18px; color:#cbd5e1;">Developer Tools / Inspect Element is strictly disabled on this portal.</p>' +
+                        '<p style="font-size:14px; color:#94a3b8; margin-top:15px;">Please close Developer Tools and refresh the page to continue using StudySpace.</p>' +
+                        '</div>';
+                }
+            }
+        }, 400);
+
+        // 5. Console Wiping Protection
+        if (window.console) {
+            var emptyFn = function() {};
+            window.console.log = emptyFn;
+            window.console.warn = emptyFn;
+            window.console.error = emptyFn;
+            window.console.info = emptyFn;
+            window.console.debug = emptyFn;
+            window.console.table = emptyFn;
+        }
+    })();
+    </script>
 </head>
 <body>
     <nav class="navbar">
