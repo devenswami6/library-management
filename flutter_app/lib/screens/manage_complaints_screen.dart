@@ -147,27 +147,72 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
               ),
               const SizedBox(height: 20),
 
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
-                  label: Text(
-                    status == 'resolved' ? 'Resolved' : 'Mark as Resolved',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryIndigo,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: status == 'resolved'
-                      ? null
-                      : () {
+              if (status == 'open') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.hourglass_top_rounded, color: Colors.white, size: 18),
+                        label: const Text('In Progress', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF59E0B),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _updateStatus(id, 'in_progress');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                        label: const Text('Resolve', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
                           Navigator.pop(ctx);
                           _updateStatus(id, 'resolved');
                         },
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+              ] else if (status == 'in_progress') ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+                    label: const Text('Mark as Resolved', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _updateStatus(id, 'resolved');
+                    },
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text('Ticket Marked as Resolved', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ),
+                ),
+              ],
             ],
           ),
         );

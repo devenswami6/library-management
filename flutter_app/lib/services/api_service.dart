@@ -623,4 +623,15 @@ class ApiService {
       return {'success': false, 'message': 'Failed to toggle shift status: $e'};
     }
   }
+
+  static Future<Map<String, dynamic>> getAdminNotifications(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_admin_notifications&user_id=$userId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load notifications: $e'};
+    }
+  }
 }

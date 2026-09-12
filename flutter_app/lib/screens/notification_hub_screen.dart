@@ -23,32 +23,17 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
   int? _selectedStudentId;
   bool _isLoadingStudents = false;
 
-  final List<dynamic> _historyNotifs = [
-    {
-      'title': 'Library Closed on 2 Oct',
-      'content': 'The self-study hall will remain closed on 2nd October for Gandhi Jayanti holiday.',
-      'target': 'To: All Students',
-      'created_at': 'Today, 09:30 AM',
-    },
-    {
-      'title': 'Maintain Silence in Hall',
-      'content': 'Please keep mobile phones on silent mode while inside the study hall.',
-      'target': 'To: All Students',
-      'created_at': 'Yesterday',
-    },
-    {
-      'title': 'Monthly Fee Reminder',
-      'content': 'Monthly seat fees for October 2026 are due. Kindly clear your dues.',
-      'target': 'To: All Students',
-      'created_at': '3 days ago',
-    },
-  ];
+  List<dynamic> _historyNotifs = [];
+  bool _isLoadingNotifs = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchStudents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchStudents();
+      _fetchNotifications();
+    });
   }
 
   @override
@@ -60,6 +45,9 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
   }
 
   Future<void> _fetchStudents() async {
+    final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
+    if (user?.role != 'admin') return;
+
     setState(() => _isLoadingStudents = true);
     final res = await ApiService.getAllStudents();
     if (mounted) {
@@ -75,6 +63,38 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
         });
       } else {
         setState(() => _isLoadingStudents = false);
+      }
+    }
+  }
+
+  Future<void> _fetchNotifications() async {
+    final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoadingNotifs = true);
+    if (user.role == 'admin') {
+      final res = await ApiService.getAdminNotifications(user.id);
+      if (mounted) {
+        if (res['success'] == true && res['admin_notifications'] != null) {
+          setState(() {
+            _historyNotifs = res['admin_notifications'];
+            _isLoadingNotifs = false;
+          });
+        } else {
+          setState(() => _isLoadingNotifs = false);
+        }
+      }
+    } else {
+      final res = await ApiService.getStudentDashboard(user.id);
+      if (mounted) {
+        if (res['success'] == true && res['notifications'] != null) {
+          setState(() {
+            _historyNotifs = res['notifications'];
+            _isLoadingNotifs = false;
+          });
+        } else {
+          setState(() => _isLoadingNotifs = false);
+        }
       }
     }
   }
@@ -107,21 +127,6 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
 
     if (mounted) {
       if (res['success'] == true) {
-        String targetText = 'To: All Students';
-        if (_sendTarget == 'specific' && _selectedStudentId != null) {
-          final targetStudent = _studentsList.firstWhere(
-            (s) => s['id'] == _selectedStudentId || s['id'].toString() == _selectedStudentId.toString(),
-            orElse: () => {'name': 'Student'},
-          );
-          targetText = 'To: ${targetStudent['name']}';
-        }
-
-        _historyNotifs.insert(0, {
-          'title': title.isEmpty ? 'Notice' : title,
-          'content': content,
-          'target': targetText,
-          'created_at': 'Just Now',
-        });
         _titleController.clear();
         _contentController.clear();
 
@@ -131,6 +136,7 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
             backgroundColor: AppColors.statusSuccess,
           ),
         );
+        _fetchNotifications();
         _tabController.animateTo(1); // Switch to History tab
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -138,6 +144,122 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
         );
       }
     }
+  }
+
+  Widget _buildNotificationList(bool isDark, bool isAdmin) {
+    if (_isLoadingNotifs) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo));
+    }
+
+    if (_historyNotifs.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _fetchNotifications,
+        color: AppColors.primaryIndigo,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.5,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.notifications_none_rounded, size: 64, color: Colors.grey.withOpacity(0.5)),
+                const SizedBox(height: 12),
+                const Text(
+                  'No notifications found',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Pull down to refresh',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchNotifications,
+      color: AppColors.primaryIndigo,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _historyNotifs.length,
+        itemBuilder: (ctx, idx) {
+          final item = _historyNotifs[idx];
+          final title = item['title'] ?? 'Notice';
+          final message = item['message'] ?? item['content'] ?? '';
+          final createdAt = item['created_at'] ?? '';
+          final type = item['type'] ?? 'notice';
+
+          IconData iconData = Icons.notifications_active_rounded;
+          Color iconBg = Colors.amber;
+
+          if (type == 'registration') {
+            iconData = Icons.person_add_rounded;
+            iconBg = AppColors.primaryIndigo;
+          } else if (type == 'complaint') {
+            iconData = Icons.warning_amber_rounded;
+            iconBg = AppColors.statusDanger;
+          } else if (type == 'chat') {
+            iconData = Icons.chat_rounded;
+            iconBg = Colors.teal;
+          }
+
+          return Card(
+            elevation: 2,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            color: isDark ? AppColors.darkCard : Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: iconBg.withOpacity(0.15),
+                    child: Icon(iconData, color: iconBg, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          message,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          ),
+                        ),
+                        if (createdAt.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              createdAt,
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -168,7 +290,7 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
           ? TabBarView(
               controller: _tabController,
               children: [
-                // TAB 1: Broadcast Form (Fixing Radio Overflow & Adding Student Dropdown Selector!)
+                // TAB 1: Broadcast Form
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -215,7 +337,6 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
                               const Text('Send To:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                               const SizedBox(height: 6),
 
-                              // Responsive Radio Target Selection (Fixing Point 5 Overflow!)
                               Wrap(
                                 spacing: 12,
                                 runSpacing: 6,
@@ -255,7 +376,6 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
                               ),
                               const SizedBox(height: 12),
 
-                              // Student Dropdown Picker (Fixing Point 5 Specific Student Selection!)
                               if (_sendTarget == 'specific') ...[
                                 Container(
                                   padding: const EdgeInsets.all(12),
@@ -340,88 +460,11 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
                 ),
 
                 // TAB 2: History List
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _historyNotifs.length,
-                  itemBuilder: (ctx, idx) {
-                    final item = _historyNotifs[idx];
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      color: isDark ? AppColors.darkCard : Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.all(14.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: Colors.amber.withOpacity(0.15),
-                              child: const Icon(Icons.notifications_active_rounded, color: Colors.amber, size: 22),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['title'] ?? 'Notice',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item['content'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        item['target'] ?? 'To: All Students',
-                                        style: const TextStyle(fontSize: 11, color: AppColors.primaryIndigo, fontWeight: FontWeight.w600),
-                                      ),
-                                      Text(
-                                        item['created_at'] ?? '',
-                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                _buildNotificationList(isDark, isAdmin),
               ],
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: _historyNotifs.map((n) {
-                  return Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.primaryIndigo,
-                        child: Icon(Icons.notifications_rounded, color: Colors.white),
-                      ),
-                      title: Text(n['title'] ?? 'Notice', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(n['content'] ?? ''),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
+          : _buildNotificationList(isDark, isAdmin),
     );
   }
 }
+

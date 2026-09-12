@@ -303,19 +303,6 @@ try {
         $stmt = $pdo->prepare("INSERT INTO chat_messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
         $stmt->execute([$user_id, $admin_id, $msg_text]);
 
-        // Dispatch instant alert notification to Admin
-        try {
-            $stu = $pdo->query("SELECT name FROM users WHERE id = $user_id")->fetch(PDO::FETCH_ASSOC);
-            $stu_name = $stu['name'] ?? ('Student #' . $user_id);
-
-            $stmt_notif = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
-            $stmt_notif->execute([
-                $admin_id,
-                "💬 New Message from " . $stu_name,
-                $msg_text
-            ]);
-        } catch (Exception $e) {}
-
         echo json_encode(['success' => true, 'message_id' => $pdo->lastInsertId()]);
         exit();
 
