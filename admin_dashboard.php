@@ -68,9 +68,10 @@ $stmt_att_full = $pdo->query("
     JOIN seats s ON a.seat_id = s.id
     JOIN shifts sh ON a.shift_id = sh.id
     LEFT JOIN attendance att ON u.id = att.user_id AND att.date = '$today'
-    WHERE u.role = 'student' AND u.status = 'approved'
+    WHERE u.role = 'student' AND (u.status = 'approved' OR u.status = 'active') AND u.is_deleted = 0
     ORDER BY att.check_in_time DESC, u.name ASC
 ");
+$attendance_roster = $stmt_att_full->fetchAll(PDO::FETCH_ASSOC);
 // Auto-purge complaints, notifications, and chat messages older than 2 days (48 hours)
 try {
     $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-2 days')");
@@ -331,10 +332,22 @@ $active_tab = $_GET['tab'] ?? 'seatmap';
 
     <!-- TAB 3: MONTHLY FEE LEDGER & RENEWAL TRACKER -->
     <div id="tabAdminFees" class="tab-pane <?php echo $active_tab === 'fees' ? 'active' : ''; ?>">
-        <h3><i class="fas fa-file-invoice-dollar" style="color: var(--accent-primary);"></i> Monthly Fee Renewal & Collection Ledger</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
-            Fees are automatically tracked based on each student's joining date.
-        </p>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+            <div>
+                <h3><i class="fas fa-file-invoice-dollar" style="color: var(--accent-primary);"></i> Monthly Fee Renewal & Collection Ledger</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                    Fees are automatically tracked based on each student's joining date.
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="master_12month_fee_report.php" class="btn btn-primary btn-sm" target="_blank">
+                    <i class="fas fa-calendar-alt"></i> 12-Month Master Ledger
+                </a>
+                <a href="master_12month_fee_report.php?format=csv" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-file-excel" style="color:#10b981;"></i> Export 12-Mo Excel (CSV)
+                </a>
+            </div>
+        </div>
 
         <div class="table-responsive">
             <table class="custom-table">
