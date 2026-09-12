@@ -285,6 +285,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       color: const Color(0xFF10B981),
                       onTap: () => Navigator.of(context).pushNamed('/db_backup'),
                     ),
+                    const SizedBox(height: 10),
+
+                    _buildAdminMenuCard(
+                      title: 'App Branding & Name Settings ⚙️',
+                      subtitle: 'Customize mobile app name, tagline & custom logo image',
+                      icon: Icons.app_settings_alt_rounded,
+                      color: const Color(0xFFEC4899),
+                      onTap: () => Navigator.of(context).pushNamed('/app_settings'),
+                    ),
                     const SizedBox(height: 24),
 
                     const Center(

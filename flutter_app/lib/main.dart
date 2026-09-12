@@ -26,6 +26,7 @@ import 'screens/admin_chat_threads_screen.dart';
 import 'screens/manage_students_screen.dart';
 import 'screens/manage_shifts_screen.dart';
 import 'screens/db_backup_screen.dart';
+import 'screens/app_settings_screen.dart';
 
 import 'package:workmanager/workmanager.dart';
 import 'services/notification_service.dart';
@@ -227,6 +228,7 @@ class StudyLibraryApp extends StatelessWidget {
         '/manage_students': (context) => const ManageStudentsScreen(),
         '/manage_shifts': (context) => const ManageShiftsScreen(),
         '/db_backup': (context) => const DbBackupScreen(),
+        '/app_settings': (context) => const AppSettingsScreen(),
       },
     );
   }

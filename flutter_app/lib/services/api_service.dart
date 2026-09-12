@@ -634,4 +634,36 @@ class ApiService {
       return {'success': false, 'message': 'Failed to load notifications: $e'};
     }
   }
+
+  static Future<Map<String, dynamic>> getAppSettings() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_app_settings'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to fetch app settings: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateAppSettings({
+    required String appName,
+    required String appLogoUrl,
+    required String appTagline,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: {
+          'action': 'update_app_settings',
+          'app_name': appName,
+          'app_logo_url': appLogoUrl,
+          'app_tagline': appTagline,
+        },
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to update app settings: $e'};
+    }
+  }
 }

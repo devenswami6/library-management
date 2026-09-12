@@ -982,6 +982,71 @@ try {
         ]);
         exit();
 
+    } elseif ($action === 'get_app_settings') {
+        $settings = [];
+        try {
+            $rows = $pdo->query("SELECT setting_key, setting_value FROM system_settings")->fetchAll();
+            foreach ($rows as $r) {
+                $settings[$r['setting_key']] = $r['setting_value'];
+            }
+        } catch (Exception $e) {}
+
+        echo json_encode([
+            'success' => true,
+            'settings' => [
+                'app_name' => $settings['app_name'] ?? 'Self Study Library',
+                'app_logo_url' => $settings['app_logo_url'] ?? '',
+                'app_tagline' => $settings['app_tagline'] ?? 'Quiet Environment & High-Speed Wi-Fi'
+            ]
+        ]);
+        exit();
+
+    } elseif ($action === 'update_app_settings') {
+        $app_name = trim($_POST['app_name'] ?? '');
+        $app_logo_url = trim($_POST['app_logo_url'] ?? '');
+        $app_tagline = trim($_POST['app_tagline'] ?? '');
+
+        if (isset($_FILES['logo_file']) && $_FILES['logo_file']['error'] === UPLOAD_ERR_OK) {
+            $uploads_dir = __DIR__ . '/../assets/uploads';
+            if (!file_exists($uploads_dir)) {
+                @mkdir($uploads_dir, 0777, true);
+            }
+            $ext = pathinfo($_FILES['logo_file']['name'], PATHINFO_EXTENSION);
+            $filename = 'app_logo_' . time() . '.' . ($ext ?: 'png');
+            $target_path = $uploads_dir . '/' . $filename;
+            if (move_uploaded_file($_FILES['logo_file']['tmp_name'], $target_path)) {
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+                $host = $_SERVER['HTTP_HOST'] ?? 'library-management-hmwx.onrender.com';
+                $app_logo_url = "$protocol://$host/assets/uploads/$filename";
+            }
+        }
+
+        try {
+            if ($app_name !== '') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES ('app_name', ?)");
+                $stmt->execute([$app_name]);
+            }
+            if ($app_logo_url !== '') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES ('app_logo_url', ?)");
+                $stmt->execute([$app_logo_url]);
+            }
+            if ($app_tagline !== '') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES ('app_tagline', ?)");
+                $stmt->execute([$app_tagline]);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'App branding settings updated successfully!',
+                'app_name' => $app_name,
+                'app_logo_url' => $app_logo_url,
+                'app_tagline' => $app_tagline
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Failed to update app settings: ' . $e->getMessage()]);
+        }
+        exit();
+
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid admin action specified.']);
         exit();

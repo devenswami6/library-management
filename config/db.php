@@ -189,6 +189,16 @@ function init_database($pdo) {
         FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
     )");
 
+    // 10. System Settings table (Dynamic App Name & App Logo)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key TEXT PRIMARY KEY,
+        setting_value TEXT
+    )");
+
+    $pdo->exec("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('app_name', 'Self Study Library')");
+    $pdo->exec("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('app_logo_url', '')");
+    $pdo->exec("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('app_tagline', 'Quiet Environment & High-Speed Wi-Fi')");
+
     // HIGH PERFORMANCE INDEXES FOR 100+ CONCURRENT USERS
     try {
         $pdo->exec("CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)");
