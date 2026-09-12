@@ -76,8 +76,14 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
       final res = await ApiService.getAdminNotifications(user.id);
       if (mounted) {
         if (res['success'] == true && res['admin_notifications'] != null) {
+          final list = List<dynamic>.from(res['admin_notifications']);
+          list.sort((a, b) {
+            final aTime = (a['created_at'] ?? '').toString();
+            final bTime = (b['created_at'] ?? '').toString();
+            return bTime.compareTo(aTime);
+          });
           setState(() {
-            _historyNotifs = res['admin_notifications'];
+            _historyNotifs = list;
             _isLoadingNotifs = false;
           });
         } else {
@@ -88,8 +94,14 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
       final res = await ApiService.getStudentDashboard(user.id);
       if (mounted) {
         if (res['success'] == true && res['notifications'] != null) {
+          final list = List<dynamic>.from(res['notifications']);
+          list.sort((a, b) {
+            final aTime = (a['created_at'] ?? '').toString();
+            final bTime = (b['created_at'] ?? '').toString();
+            return bTime.compareTo(aTime);
+          });
           setState(() {
-            _historyNotifs = res['notifications'];
+            _historyNotifs = list;
             _isLoadingNotifs = false;
           });
         } else {

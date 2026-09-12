@@ -971,6 +971,11 @@ try {
             ];
         }
 
+        // Sort all admin notifications in strict LIFO order (Latest / Newest at top)
+        usort($admin_notifs, function($a, $b) {
+            return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
+        });
+
         echo json_encode([
             'success' => true,
             'admin_notifications' => $admin_notifs
