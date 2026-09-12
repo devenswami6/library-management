@@ -81,9 +81,9 @@ function init_database($pdo) {
         $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
     } catch (Exception $e) {}
 
-    // Auto-purge Help Complaints/Tickets older than 2 days (48 hours)
+    // Auto-purge Help Complaints/Tickets older than 1 month (30 days)
     try {
-        $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-2 days')");
+        $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
     } catch (Exception $e) {}
 
     // 2. Shifts table

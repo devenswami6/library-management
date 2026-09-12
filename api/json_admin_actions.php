@@ -654,7 +654,7 @@ try {
 
     } elseif ($action === 'get_admin_chat_threads') {
         try {
-            $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-2 days')");
+            $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
             $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
             $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
         } catch (Exception $e) {}
