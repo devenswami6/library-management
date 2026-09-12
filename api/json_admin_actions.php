@@ -127,35 +127,147 @@ try {
         exit();
 
     } elseif ($action === 'get_live_attendance') {
-        $today = date('Y-m-d');
-        $students_att = $pdo->query("
+        $target_date = trim($_GET['date'] ?? ($_POST['date'] ?? date('Y-m-d')));
+        
+        $stmt_att = $pdo->prepare("
             SELECT u.id as user_id, u.name as student_name, u.phone, s.seat_number, sh.name as shift_name,
                    att.id as attendance_id, att.check_in_time, att.check_out_time
             FROM users u
             JOIN allocations a ON u.id = a.user_id AND a.status = 'active'
             JOIN seats s ON a.seat_id = s.id
             JOIN shifts sh ON a.shift_id = sh.id
-            LEFT JOIN attendance att ON u.id = att.user_id AND att.date = '$today'
+            LEFT JOIN attendance att ON u.id = att.user_id AND att.date = ?
             WHERE u.role = 'student' AND (u.status = 'approved' OR u.status = 'active') AND u.is_deleted = 0
             ORDER BY s.seat_number ASC
-        ")->fetchAll();
+        ");
+        $stmt_att->execute([$target_date]);
+        $students_att = $stmt_att->fetchAll(PDO::FETCH_ASSOC);
 
         $total_count = count($students_att);
         $inside_count = 0;
-        foreach ($students_att as $sa) {
-            if (!empty($sa['check_in_time']) && empty($sa['check_out_time'])) {
-                $inside_count++;
+        
+        foreach ($students_att as &$sa) {
+            $check_in_str = 'Not Arrived';
+            $check_out_str = 'N/A';
+            $duration_str = '--';
+            
+            if (!empty($sa['check_in_time'])) {
+                $check_in_ts = strtotime($sa['check_in_time']);
+                $check_in_str = date('g:i A', $check_in_ts);
+                
+                if (!empty($sa['check_out_time'])) {
+                    $check_out_ts = strtotime($sa['check_out_time']);
+                    $check_out_str = date('g:i A', $check_out_ts);
+                    $diff = max(0, $check_out_ts - $check_in_ts);
+                    $hrs = floor($diff / 3600);
+                    $mins = floor(($diff % 3600) / 60);
+                    $duration_str = "{$hrs}h {$mins}m";
+                } else {
+                    $inside_count++;
+                    $check_out_str = 'In Hall 🟢';
+                    $diff = max(0, time() - $check_in_ts);
+                    $hrs = floor($diff / 3600);
+                    $mins = floor(($diff % 3600) / 60);
+                    $duration_str = "{$hrs}h {$mins}m (In)";
+                }
             }
+            
+            $sa['check_in_formatted'] = $check_in_str;
+            $sa['check_out_formatted'] = $check_out_str;
+            $sa['duration_today'] = $duration_str;
         }
+        unset($sa);
+        
         $absent_count = $total_count - $inside_count;
 
         echo json_encode([
             'success' => true,
-            'date' => $today,
+            'date' => $target_date,
             'total_students' => $total_count,
             'currently_inside' => $inside_count,
             'absent_outside' => $absent_count,
             'attendance_list' => $students_att
+        ]);
+        exit();
+
+    } elseif ($action === 'get_12month_master_fee_report') {
+        $stmt_students = $pdo->query("
+            SELECT u.id as user_id, u.name, u.email, u.phone, u.status as user_status, u.is_deleted, u.deleted_at, u.created_at,
+                   a.start_date, s.seat_number, sh.name as shift_name, sh.fee_amount
+            FROM users u
+            LEFT JOIN allocations a ON u.id = a.user_id AND a.status = 'active'
+            LEFT JOIN seats s ON a.seat_id = s.id
+            LEFT JOIN shifts sh ON a.shift_id = sh.id
+            WHERE u.role = 'student'
+            ORDER BY u.name ASC
+        ");
+        $students = $stmt_students->fetchAll(PDO::FETCH_ASSOC);
+
+        $report_data = [];
+        $total_grand_collected = 0.0;
+        $total_grand_overdue = 0.0;
+
+        foreach ($students as $stu) {
+            $uid = $stu['user_id'];
+            $stmt_pay = $pdo->prepare("
+                SELECT month_year, amount, payment_status, paid_date, payment_mode, receipt_no, due_date
+                FROM fee_payments
+                WHERE user_id = ?
+                ORDER BY due_date DESC
+            ");
+            $stmt_pay->execute([$uid]);
+            $payments = $stmt_pay->fetchAll(PDO::FETCH_ASSOC);
+            
+            $paid_amount = 0.0;
+            $overdue_amount = 0.0;
+            $paid_months = [];
+            
+            foreach ($payments as $p) {
+                if ($p['payment_status'] === 'paid') {
+                    $paid_amount += (float)$p['amount'];
+                    $paid_months[] = $p['month_year'];
+                } elseif ($p['payment_status'] === 'overdue') {
+                    $overdue_amount += (float)$p['amount'];
+                }
+            }
+            
+            $total_grand_collected += $paid_amount;
+            $total_grand_overdue += $overdue_amount;
+            
+            $status_label = 'Active';
+            if ($stu['is_deleted'] == 1) {
+                $status_label = 'Left / Deleted';
+            } elseif ($stu['user_status'] === 'pending') {
+                $status_label = 'Pending Approval';
+            }
+            
+            $report_data[] = [
+                'user_id' => $uid,
+                'name' => $stu['name'],
+                'phone' => $stu['phone'],
+                'email' => $stu['email'],
+                'status' => $status_label,
+                'seat_number' => $stu['seat_number'] ?? 'N/A',
+                'shift_name' => $stu['shift_name'] ?? 'N/A',
+                'monthly_fee' => (float)($stu['fee_amount'] ?? 600.0),
+                'start_date' => $stu['start_date'] ?? $stu['created_at'],
+                'total_paid' => $paid_amount,
+                'total_overdue' => $overdue_amount,
+                'paid_cycles_count' => count($paid_months),
+                'payments' => $payments
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'summary' => [
+                'total_students' => count($report_data),
+                'total_collected' => $total_grand_collected,
+                'total_overdue' => $total_grand_overdue,
+            ],
+            'csv_url' => 'https://library-management-hmwx.onrender.com/master_12month_fee_report.php?format=csv',
+            'web_report_url' => 'https://library-management-hmwx.onrender.com/master_12month_fee_report.php',
+            'students' => $report_data
         ]);
         exit();
 

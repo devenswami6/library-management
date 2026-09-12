@@ -536,4 +536,15 @@ class ApiService {
       return {'success': false, 'message': 'Failed to erase student record: $e'};
     }
   }
+
+  static Future<Map<String, dynamic>> get12MonthMasterFeeReport() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_12month_master_fee_report'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to fetch 12-month master report: $e'};
+    }
+  }
 }

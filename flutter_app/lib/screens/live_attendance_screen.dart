@@ -249,6 +249,52 @@ class _LiveAttendanceScreenState extends State<LiveAttendanceScreen> {
                                                 color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                               ),
                                             ),
+                                             const SizedBox(height: 4),
+                                             // 1-Day Arrival / Departure History Timings Log
+                                             Container(
+                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                               decoration: BoxDecoration(
+                                                 color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                                 borderRadius: BorderRadius.circular(8),
+                                               ),
+                                               child: Column(
+                                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                                 children: [
+                                                   Row(
+                                                     children: [
+                                                       const Icon(Icons.login_rounded, size: 12, color: AppColors.statusSuccess),
+                                                       const SizedBox(width: 4),
+                                                       Text(
+                                                         'In: ${item['check_in_formatted'] ?? (item['check_in_time'] != null ? item['check_in_time'].toString() : "Not Arrived")}',
+                                                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   const SizedBox(height: 2),
+                                                   Row(
+                                                     children: [
+                                                       Icon(Icons.logout_rounded, size: 12, color: isPresent ? AppColors.statusSuccess : AppColors.statusDanger),
+                                                       const SizedBox(width: 4),
+                                                       Text(
+                                                         'Out: ${item['check_out_formatted'] ?? (item['check_out_time'] != null ? item['check_out_time'].toString() : "N/A")}',
+                                                         style: TextStyle(
+                                                           fontSize: 11,
+                                                           fontWeight: FontWeight.w600,
+                                                           color: isPresent ? AppColors.statusSuccess : (item['check_out_time'] != null ? AppColors.statusDanger : Colors.grey),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   if (item['duration_today'] != null && item['duration_today'] != '--') ...[
+                                                     const SizedBox(height: 2),
+                                                     Text(
+                                                       'Spent Today: ${item['duration_today']}',
+                                                       style: const TextStyle(fontSize: 10, color: AppColors.primaryIndigo, fontWeight: FontWeight.bold),
+                                                     ),
+                                                   ],
+                                                 ],
+                                               ),
+                                             ),
                                           ],
                                         ),
                                       ),

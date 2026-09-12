@@ -360,6 +360,209 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
     );
   }
 
+  void _open12MonthMasterLedgerModal() {
+    final csvUrl = '${ApiConfig.baseUrl}/master_12month_fee_report.php?format=csv';
+    final webReportUrl = '${ApiConfig.baseUrl}/master_12month_fee_report.php';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return FutureBuilder<Map<String, dynamic>>(
+          future: ApiService.get12MonthMasterFeeReport(),
+          builder: (context, snapshot) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final data = snapshot.data ?? {};
+            final summary = data['summary'] ?? {};
+            final List students = data['students'] ?? [];
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.88,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCard : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Modal Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryIndigo.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.bar_chart_rounded, color: AppColors.primaryIndigo, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              '12-Month Master Fee Ledger',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'All active & past student fee structures',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Quick Action Export Buttons (Excel & PDF)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.table_chart_rounded, size: 16, color: Colors.white),
+                          label: const Text('Export Excel / CSV', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => _openPdfUrl(csvUrl),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.white),
+                          label: const Text('All 12M PDF Page', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryIndigo,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => _openPdfUrl(webReportUrl),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+
+                  // Summary Badges
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          Text('${summary['total_students'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryIndigo)),
+                          const Text('Enrolled Students', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text('₹${(summary['total_collected'] as num?)?.toStringAsFixed(2) ?? "0.00"}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.statusSuccess)),
+                          const Text('Total Fee Collected', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Student List Breakdown
+                  Expanded(
+                    child: snapshot.connectionState == ConnectionState.waiting
+                        ? const Center(child: CircularProgressIndicator(color: AppColors.primaryIndigo))
+                        : students.isEmpty
+                            ? const Center(child: Text('No student records found.', style: TextStyle(color: Colors.grey)))
+                            : ListView.builder(
+                                itemCount: students.length,
+                                itemBuilder: (c, i) {
+                                  final s = students[i];
+                                  final bool isLeft = s['status'] == 'Left / Deleted';
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    s['name'] ?? 'Student',
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: isLeft ? AppColors.statusDangerBg : AppColors.statusSuccessBg,
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      s['status'] ?? 'Active',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: isLeft ? AppColors.statusDanger : AppColors.statusSuccess,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Desk ${s['seat_number']} • ${s['shift_name']} • ${s['phone']}',
+                                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                              ),
+                                              Text(
+                                                'Paid Cycles: ${s['paid_cycles_count']} Months',
+                                                style: const TextStyle(fontSize: 11, color: AppColors.primaryIndigo, fontWeight: FontWeight.w600),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '₹${(s['total_paid'] as num?)?.toStringAsFixed(2) ?? "0.00"}',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.statusSuccess),
+                                            ),
+                                            const Text('Total Paid', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -433,6 +636,25 @@ class _ManageFeesScreenState extends State<ManageFeesScreen> {
                             ],
                           ),
                         ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // 12-Month Master Fee Report & Excel/CSV Export Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.bar_chart_rounded, size: 18, color: Colors.white),
+                        label: const Text(
+                          '📊 12-Month Master Ledger & Export (Excel/PDF)',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _open12MonthMasterLedgerModal,
                       ),
                     ),
                     const SizedBox(height: 18),
