@@ -1,0 +1,1024 @@
+{
+    "users": [
+        {
+            "id": 1,
+            "name": "Library Owner Admin",
+            "email": "admin@library.com",
+            "phone": "9876543210",
+            "password": "$2y$12$DzSrSmkHcFu1yWhNXmGj3.eBmtbkgLzRcJmFGzgu3O1azcFT7AE1G",
+            "role": "admin",
+            "emergency_contact": null,
+            "id_proof_type": null,
+            "id_proof_no": null,
+            "status": "approved",
+            "created_at": "2026-09-03 05:57:22",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 2,
+            "name": "Rahul Sharma",
+            "email": "rahul@gmail.com",
+            "phone": "9812345678",
+            "password": "$2y$10$Am4tp.dr.bWP\/1zimiLideVNp\/mePvhBVfwrK2056CywQvVVe7Vym",
+            "role": "student",
+            "emergency_contact": "9812345600",
+            "id_proof_type": "Aadhaar",
+            "id_proof_no": "1234-5678-9012",
+            "status": "approved",
+            "created_at": "2026-08-15 10:00:00",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 3,
+            "name": "Priya Verma",
+            "email": "priya@gmail.com",
+            "phone": "9823456789",
+            "password": "$2y$10$Am4tp.dr.bWP\/1zimiLideVNp\/mePvhBVfwrK2056CywQvVVe7Vym",
+            "role": "student",
+            "emergency_contact": "9823456700",
+            "id_proof_type": "Voter ID",
+            "id_proof_no": "ABC1234567",
+            "status": "approved",
+            "created_at": "2026-07-10 11:30:00",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 4,
+            "name": "Amit Kumar",
+            "email": "amit@gmail.com",
+            "phone": "9834567890",
+            "password": "$2y$10$Am4tp.dr.bWP\/1zimiLideVNp\/mePvhBVfwrK2056CywQvVVe7Vym",
+            "role": "student",
+            "emergency_contact": "9834567800",
+            "id_proof_type": "Aadhaar",
+            "id_proof_no": "9876-5432-1098",
+            "status": "pending",
+            "created_at": "2026-09-01 09:15:00",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 1,
+            "deleted_at": "2026-09-08 12:25:57"
+        },
+        {
+            "id": 5,
+            "name": "Neha Patel",
+            "email": "neha@gmail.com",
+            "phone": "9845678901",
+            "password": "$2y$10$Am4tp.dr.bWP\/1zimiLideVNp\/mePvhBVfwrK2056CywQvVVe7Vym",
+            "role": "student",
+            "emergency_contact": "9845678900",
+            "id_proof_type": "Student ID",
+            "id_proof_no": "STU9988",
+            "status": "approved",
+            "created_at": "2026-09-02 14:20:00",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 6,
+            "name": "Deven Swami",
+            "email": "devenswami64@gmail.com",
+            "phone": "07727880903",
+            "password": "$2y$10$LYRhalZmnQEwe7XRYvtsYeq8.J1iHCIr1ra.gKXGqUB9K3iyxaKTm",
+            "role": "student",
+            "emergency_contact": "07727880903",
+            "id_proof_type": "Aadhaar",
+            "id_proof_no": "12341234123444",
+            "status": "approved",
+            "created_at": "2026-09-03 05:59:09",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": "DEV-1788788407526-5718",
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 7,
+            "name": "Deven Swami",
+            "email": "thestylye4@gmail.com",
+            "phone": "07727880903",
+            "password": "$2y$10$MppgCIhhbe6KHRC8uXU7CeyjJS31eEPqvQxXQbvZZlW1EBGHl1Qg2",
+            "role": "student",
+            "emergency_contact": "1234567890",
+            "id_proof_type": "Aadhaar",
+            "id_proof_no": "123412341234",
+            "status": "approved",
+            "created_at": "2026-09-03 06:41:13",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 8,
+            "name": "Mr ram",
+            "email": "ram@gmail.com",
+            "phone": "3333333333",
+            "password": "$2y$10$Emf4scKvqn7yvkNRf8x1heiRA.kSGcjg7cBiCYiEjWbNPUj\/TXP5a",
+            "role": "student",
+            "emergency_contact": "1234567890",
+            "id_proof_type": "Aadhaar Card",
+            "id_proof_no": "1234568193",
+            "status": "pending",
+            "created_at": "2026-09-04 06:07:27",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 9,
+            "name": "jitu",
+            "email": "jitendrapuri766@gmail.com",
+            "phone": "9782742040",
+            "password": "$2y$10$y8UJEuDN8R.Nc6TM\/eeAJudqUu5zTGhe4DEQFJrXz\/WBxAVMB5JlW",
+            "role": "student",
+            "emergency_contact": "2222222222",
+            "id_proof_type": "Aadhaar Card",
+            "id_proof_no": "123456789013",
+            "status": "approved",
+            "created_at": "2026-09-07 07:25:08",
+            "otp_code": null,
+            "otp_expires_at": null,
+            "registered_device_id": null,
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 10,
+            "name": "Krishna",
+            "email": "thestyleboy6@gmail.com",
+            "phone": "7727880903",
+            "password": "$2y$10$2hqWw\/rkFQ.rtx82co8IQe86XwqyeLtDbY17SXf1o.FM0OtEM8nUK",
+            "role": "student",
+            "emergency_contact": "7727880903",
+            "id_proof_type": "Aadhaar Card",
+            "id_proof_no": "123456789012",
+            "status": "pending",
+            "created_at": "2026-09-07 13:11:03",
+            "otp_code": "469145",
+            "otp_expires_at": "2026-09-07 15:37:11",
+            "registered_device_id": "DEV-1788787635836-6032",
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        },
+        {
+            "id": 11,
+            "name": "DEV",
+            "email": "dev@gmail.com",
+            "phone": "8382191428",
+            "password": "$2y$10$ENF4eUOto8jIB.EUoYDhwusjnjh6ydckjsjGLQtjkcz1Xm.aXnQLC",
+            "role": "student",
+            "emergency_contact": "7727880903",
+            "id_proof_type": "Aadhaar Card",
+            "id_proof_no": "172782818282811",
+            "status": "pending",
+            "created_at": "2026-09-07 13:18:59",
+            "otp_code": "428635",
+            "otp_expires_at": "2026-09-07 15:44:30",
+            "registered_device_id": "DEV-1788788042930-4269",
+            "father_name": null,
+            "address": null,
+            "is_deleted": 0,
+            "deleted_at": null
+        }
+    ],
+    "shifts": [
+        {
+            "id": 1,
+            "name": "Morning Half Day Shift",
+            "start_time": "08:00",
+            "end_time": "14:00",
+            "fee_amount": 600,
+            "is_active": 1
+        },
+        {
+            "id": 2,
+            "name": "Afternoon \/ Evening Shift",
+            "start_time": "14:00",
+            "end_time": "21:00",
+            "fee_amount": 600,
+            "is_active": 1
+        },
+        {
+            "id": 3,
+            "name": "Full Day",
+            "start_time": "08:00",
+            "end_time": "22:00",
+            "fee_amount": 700,
+            "is_active": 1
+        },
+        {
+            "id": 4,
+            "name": "Full Day (24 Hours)",
+            "start_time": "00:00",
+            "end_time": "23:59",
+            "fee_amount": 1200,
+            "is_active": 1
+        }
+    ],
+    "seats": [
+        {
+            "id": 1,
+            "seat_number": "A-01",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 2,
+            "seat_number": "A-02",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 3,
+            "seat_number": "A-03",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 4,
+            "seat_number": "A-04",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 5,
+            "seat_number": "A-05",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 6,
+            "seat_number": "A-06",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 7,
+            "seat_number": "A-07",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 8,
+            "seat_number": "A-08",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 9,
+            "seat_number": "A-09",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 10,
+            "seat_number": "A-10",
+            "row_label": "A",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 11,
+            "seat_number": "B-01",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 12,
+            "seat_number": "B-02",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 13,
+            "seat_number": "B-03",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 14,
+            "seat_number": "B-04",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 15,
+            "seat_number": "B-05",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 16,
+            "seat_number": "B-06",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 17,
+            "seat_number": "B-07",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 18,
+            "seat_number": "B-08",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 19,
+            "seat_number": "B-09",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 20,
+            "seat_number": "B-10",
+            "row_label": "B",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 21,
+            "seat_number": "C-01",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 22,
+            "seat_number": "C-02",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 23,
+            "seat_number": "C-03",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 24,
+            "seat_number": "C-04",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 25,
+            "seat_number": "C-05",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 26,
+            "seat_number": "C-06",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 27,
+            "seat_number": "C-07",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 28,
+            "seat_number": "C-08",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 29,
+            "seat_number": "C-09",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 30,
+            "seat_number": "C-10",
+            "row_label": "C",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 31,
+            "seat_number": "D-01",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 32,
+            "seat_number": "D-02",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 33,
+            "seat_number": "D-03",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 34,
+            "seat_number": "D-04",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 35,
+            "seat_number": "D-05",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 36,
+            "seat_number": "D-06",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 37,
+            "seat_number": "D-07",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 38,
+            "seat_number": "D-08",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 39,
+            "seat_number": "D-09",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 40,
+            "seat_number": "D-10",
+            "row_label": "D",
+            "is_active": 1,
+            "remarks": "Standard Ergonomic Desk with Charging Socket"
+        },
+        {
+            "id": 41,
+            "seat_number": "E-01",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": "new seats"
+        },
+        {
+            "id": 42,
+            "seat_number": "F-01",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": "new seats"
+        },
+        {
+            "id": 44,
+            "seat_number": "E-02",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 45,
+            "seat_number": "E-03",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 46,
+            "seat_number": "E-04",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 47,
+            "seat_number": "E-05",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 48,
+            "seat_number": "E-06",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 49,
+            "seat_number": "E-07",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 50,
+            "seat_number": "E-08",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 51,
+            "seat_number": "E-09",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 52,
+            "seat_number": "E-10",
+            "row_label": "E",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 53,
+            "seat_number": "F-02",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 54,
+            "seat_number": "F-03",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 55,
+            "seat_number": "F-04",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 56,
+            "seat_number": "F-05",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 57,
+            "seat_number": "F-06",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 58,
+            "seat_number": "F-07",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 59,
+            "seat_number": "F-08",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 60,
+            "seat_number": "F-09",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 61,
+            "seat_number": "F-10",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        },
+        {
+            "id": 62,
+            "seat_number": "F-11",
+            "row_label": "F",
+            "is_active": 1,
+            "remarks": null
+        }
+    ],
+    "allocations": [
+        {
+            "id": 1,
+            "user_id": 2,
+            "seat_id": 1,
+            "shift_id": 1,
+            "start_date": "2026-08-15",
+            "status": "active",
+            "notes": null,
+            "created_at": "2026-09-03 05:57:22"
+        },
+        {
+            "id": 2,
+            "user_id": 3,
+            "seat_id": 2,
+            "shift_id": 1,
+            "start_date": "2026-07-10",
+            "status": "active",
+            "notes": null,
+            "created_at": "2026-09-03 05:57:22"
+        },
+        {
+            "id": 3,
+            "user_id": 6,
+            "seat_id": 3,
+            "shift_id": 1,
+            "start_date": "2026-09-04",
+            "status": "active",
+            "notes": null,
+            "created_at": "2026-09-03 05:59:10"
+        },
+        {
+            "id": 4,
+            "user_id": 7,
+            "seat_id": 10,
+            "shift_id": 3,
+            "start_date": "2026-09-03",
+            "status": "active",
+            "notes": null,
+            "created_at": "2026-09-03 06:42:36"
+        },
+        {
+            "id": 5,
+            "user_id": 8,
+            "seat_id": 1,
+            "shift_id": 1,
+            "start_date": "2026-09-04",
+            "status": "hold",
+            "notes": "Requested registration by student",
+            "created_at": "2026-09-04 06:07:27"
+        },
+        {
+            "id": 7,
+            "user_id": 9,
+            "seat_id": 1,
+            "shift_id": 2,
+            "start_date": "2026-09-07",
+            "status": "active",
+            "notes": "Seat desk allotted by Admin",
+            "created_at": "2026-09-07 07:25:53"
+        },
+        {
+            "id": 8,
+            "user_id": 10,
+            "seat_id": 1,
+            "shift_id": 3,
+            "start_date": "2026-09-07",
+            "status": "hold",
+            "notes": "Requested registration by student",
+            "created_at": "2026-09-07 13:11:04"
+        },
+        {
+            "id": 9,
+            "user_id": 11,
+            "seat_id": 1,
+            "shift_id": 1,
+            "start_date": "2026-09-07",
+            "status": "hold",
+            "notes": "Requested registration by student",
+            "created_at": "2026-09-07 13:19:00"
+        }
+    ],
+    "fee_payments": [
+        {
+            "id": 1,
+            "allocation_id": 1,
+            "user_id": 2,
+            "month_year": "2026-08",
+            "amount": 600,
+            "due_date": "2026-08-15",
+            "paid_date": "2026-08-15",
+            "payment_status": "paid",
+            "payment_mode": "UPI",
+            "receipt_no": "REC-20260815-01",
+            "remarks": null,
+            "created_at": "2026-09-03 05:57:22"
+        },
+        {
+            "id": 2,
+            "allocation_id": 1,
+            "user_id": 2,
+            "month_year": "2026-09",
+            "amount": 600,
+            "due_date": "2026-09-15",
+            "paid_date": "2026-09-02",
+            "payment_status": "paid",
+            "payment_mode": "UPI",
+            "receipt_no": "REC-20260902-02",
+            "remarks": null,
+            "created_at": "2026-09-03 05:57:22"
+        },
+        {
+            "id": 3,
+            "allocation_id": 2,
+            "user_id": 3,
+            "month_year": "2026-07",
+            "amount": 600,
+            "due_date": "2026-07-10",
+            "paid_date": "2026-07-10",
+            "payment_status": "paid",
+            "payment_mode": "Cash",
+            "receipt_no": "REC-20260710-01",
+            "remarks": null,
+            "created_at": "2026-09-03 05:57:22"
+        },
+        {
+            "id": 4,
+            "allocation_id": 2,
+            "user_id": 3,
+            "month_year": "2026-08",
+            "amount": 600,
+            "due_date": "2026-08-10",
+            "paid_date": "2026-08-10",
+            "payment_status": "paid",
+            "payment_mode": "Cash",
+            "receipt_no": "REC-20260810-02",
+            "remarks": null,
+            "created_at": "2026-09-03 05:57:22"
+        },
+        {
+            "id": 5,
+            "allocation_id": 2,
+            "user_id": 3,
+            "month_year": "2026-09",
+            "amount": 600,
+            "due_date": "2026-09-10",
+            "paid_date": null,
+            "payment_status": "overdue",
+            "payment_mode": null,
+            "receipt_no": null,
+            "remarks": null,
+            "created_at": "2026-09-03 05:57:23"
+        },
+        {
+            "id": 6,
+            "allocation_id": 3,
+            "user_id": 6,
+            "month_year": "2026-09",
+            "amount": 600,
+            "due_date": "2026-09-03",
+            "paid_date": "2026-09-03",
+            "payment_status": "paid",
+            "payment_mode": "UPI \/ PhonePe \/ GPay",
+            "receipt_no": "REC-20260903-2851",
+            "remarks": null,
+            "created_at": "2026-09-03 06:01:46"
+        },
+        {
+            "id": 7,
+            "allocation_id": 4,
+            "user_id": 7,
+            "month_year": "2026-09",
+            "amount": 700,
+            "due_date": "2026-09-03",
+            "paid_date": "2026-09-03",
+            "payment_status": "paid",
+            "payment_mode": "Cash",
+            "receipt_no": "REC-20260903-1584",
+            "remarks": null,
+            "created_at": "2026-09-03 06:42:36"
+        }
+    ],
+    "attendance": [
+        {
+            "id": 1,
+            "user_id": 6,
+            "date": "2026-09-03",
+            "check_in_time": "08:09:41",
+            "check_out_time": "08:11:03",
+            "status": "present"
+        },
+        {
+            "id": 2,
+            "user_id": 7,
+            "date": "2026-09-03",
+            "check_in_time": "12:16:01",
+            "check_out_time": "08:50:20",
+            "status": "present"
+        },
+        {
+            "id": 3,
+            "user_id": 8,
+            "date": "2026-09-04",
+            "check_in_time": "11:44:03",
+            "check_out_time": "11:44:05",
+            "status": "present"
+        },
+        {
+            "id": 4,
+            "user_id": 8,
+            "date": "2026-09-04",
+            "check_in_time": "11:44:06",
+            "check_out_time": "11:44:07",
+            "status": "present"
+        },
+        {
+            "id": 5,
+            "user_id": 8,
+            "date": "2026-09-04",
+            "check_in_time": "11:59:33",
+            "check_out_time": "11:59:34",
+            "status": "present"
+        },
+        {
+            "id": 6,
+            "user_id": 8,
+            "date": "2026-09-04",
+            "check_in_time": "11:59:36",
+            "check_out_time": "11:59:37",
+            "status": "present"
+        },
+        {
+            "id": 7,
+            "user_id": 7,
+            "date": "2026-09-04",
+            "check_in_time": "12:24:06",
+            "check_out_time": null,
+            "status": "present"
+        },
+        {
+            "id": 8,
+            "user_id": 6,
+            "date": "2026-09-06",
+            "check_in_time": "09:43:33",
+            "check_out_time": null,
+            "status": "present"
+        },
+        {
+            "id": 9,
+            "user_id": 9,
+            "date": "2026-09-07",
+            "check_in_time": "12:57:08",
+            "check_out_time": "09:27:21",
+            "status": "present"
+        }
+    ],
+    "complaints": [
+        {
+            "id": 1,
+            "user_id": 2,
+            "category": "AC\/Cooling",
+            "subject": "AC temperature too cold near Row A",
+            "description": "Please keep AC at 24\u00b0C, Row A seats are directly facing air flow.",
+            "status": "open",
+            "created_at": "2026-09-03 05:57:23"
+        },
+        {
+            "id": 2,
+            "user_id": 6,
+            "category": "WiFi",
+            "subject": "mywifi is not connect",
+            "description": "bhaiya wifi ka psw kya hai",
+            "status": "in_progress",
+            "created_at": "2026-09-03 06:03:11"
+        },
+        {
+            "id": 3,
+            "user_id": 7,
+            "category": "WiFi",
+            "subject": "mywifi is not connect",
+            "description": "sir wifi ka psw kya hai",
+            "status": "resolved",
+            "created_at": "2026-09-03 06:44:57"
+        },
+        {
+            "id": 4,
+            "user_id": 6,
+            "category": "General",
+            "subject": "room",
+            "description": "room meh safai",
+            "status": "open",
+            "created_at": "2026-09-05 07:05:10"
+        },
+        {
+            "id": 5,
+            "user_id": 6,
+            "category": "General",
+            "subject": "ac",
+            "description": "ac not working",
+            "status": "in_progress",
+            "created_at": "2026-09-06 04:13:46"
+        },
+        {
+            "id": 6,
+            "user_id": 9,
+            "category": "AC\/Cooling",
+            "subject": "ac",
+            "description": "ac not working",
+            "status": "resolved",
+            "created_at": "2026-09-07 07:28:23"
+        },
+        {
+            "id": 7,
+            "user_id": 6,
+            "category": "Desk\/Chair",
+            "subject": "desk light now working",
+            "description": "light proper work nhi kr rahi hai",
+            "status": "resolved",
+            "created_at": "2026-09-07 07:39:22"
+        }
+    ],
+    "notifications": [],
+    "chat_messages": [],
+    "system_settings": [
+        {
+            "setting_key": "app_name",
+            "setting_value": "Self Study Library"
+        },
+        {
+            "setting_key": "app_logo_url",
+            "setting_value": ""
+        },
+        {
+            "setting_key": "app_tagline",
+            "setting_value": "Quiet Environment & High-Speed Wi-Fi"
+        }
+    ]
+}

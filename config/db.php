@@ -23,6 +23,56 @@ if (!class_exists('ApiConfig')) {
     }
 }
 
+function save_db_snapshot($pdo) {
+    try {
+        $snapshot_file = __DIR__ . '/db_snapshot.json';
+        $tables = ['users', 'shifts', 'seats', 'allocations', 'fee_payments', 'attendance', 'complaints', 'notifications', 'chat_messages', 'system_settings'];
+        $data = [];
+        foreach ($tables as $t) {
+            try {
+                $data[$t] = $pdo->query("SELECT * FROM $t")->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                $data[$t] = [];
+            }
+        }
+        @file_put_contents($snapshot_file, json_encode($data, JSON_PRETTY_PRINT));
+    } catch (Exception $e) {}
+}
+
+register_shutdown_function(function() use ($pdo) {
+    if (isset($_SERVER['REQUEST_METHOD']) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'DELETE'])) {
+        save_db_snapshot($pdo);
+    }
+});
+
+function restore_db_snapshot($pdo) {
+    $snapshot_file = __DIR__ . '/db_snapshot.json';
+    if (!file_exists($snapshot_file)) return false;
+    
+    $raw = @file_get_contents($snapshot_file);
+    if (empty($raw)) return false;
+    
+    $data = json_decode($raw, true);
+    if (empty($data) || empty($data['users'])) return false;
+
+    try {
+        foreach ($data as $table => $rows) {
+            if (empty($rows)) continue;
+            $cols = array_keys($rows[0]);
+            $placeholders = implode(',', array_fill(0, count($cols), '?'));
+            $col_names = implode(',', $cols);
+            
+            $stmt = $pdo->prepare("INSERT OR REPLACE INTO $table ($col_names) VALUES ($placeholders)");
+            foreach ($rows as $row) {
+                $stmt->execute(array_values($row));
+            }
+        }
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
 // Function to initialize database tables and seed data if empty
 function init_database($pdo) {
     // 1. Users table (Admin & Students)
@@ -42,6 +92,14 @@ function init_database($pdo) {
         registered_device_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Restore from persistent db_snapshot.json if database is newly initialized
+    try {
+        $user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        if ($user_count == 0) {
+            restore_db_snapshot($pdo);
+        }
+    } catch (Exception $e) {}
 
     try {
         $pdo->exec("ALTER TABLE users ADD COLUMN otp_code TEXT");
