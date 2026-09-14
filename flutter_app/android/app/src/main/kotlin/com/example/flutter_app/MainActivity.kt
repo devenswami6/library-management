@@ -8,7 +8,8 @@ import android.os.PowerManager
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.example.flutter_app/notifications"
@@ -23,6 +24,7 @@ class MainActivity: FlutterActivity() {
                     val baseUrl = call.argument<String>("baseUrl") ?: "https://library-management-hmwx.onrender.com"
                     if (userId > 0) {
                         LibraryNotificationService.startService(context, userId, baseUrl)
+                        requestPostNotificationsPermission()
                         result.success(true)
                     } else {
                         result.success(false)
@@ -51,16 +53,11 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private fun requestBatteryOptimizationExemption() {
+    private fun requestPostNotificationsPermission() {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-                val pkgName = packageName
-                if (!powerManager.isIgnoringBatteryOptimizations(pkgName)) {
-                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = Uri.parse("package:$pkgName")
-                    }
-                    startActivity(intent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
                 }
             }
         } catch (e: Exception) {
