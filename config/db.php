@@ -68,17 +68,28 @@ function restore_db_snapshot($pdo) {
         $pdo->exec("PRAGMA foreign_keys = OFF;");
         foreach ($data as $table => $rows) {
             if (empty($rows)) continue;
-            $tbl_check = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='$table'")->fetch();
-            if (!$tbl_check) continue;
-
-            $cols = array_keys($rows[0]);
-            $placeholders = implode(',', array_fill(0, count($cols), '?'));
-            $col_names = implode(',', $cols);
             
-            $stmt = $pdo->prepare("INSERT OR REPLACE INTO $table ($col_names) VALUES ($placeholders)");
+            $table_cols = [];
+            try {
+                $info = $pdo->query("PRAGMA table_info($table)")->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($info as $col) {
+                    $table_cols[] = $col['name'];
+                }
+            } catch (Exception $ex) { continue; }
+            
+            if (empty($table_cols)) continue;
+
             foreach ($rows as $row) {
+                $filtered_row = array_intersect_key($row, array_flip($table_cols));
+                if (empty($filtered_row)) continue;
+
+                $cols = array_keys($filtered_row);
+                $placeholders = implode(',', array_fill(0, count($cols), '?'));
+                $col_names = implode(',', $cols);
+                
                 try {
-                    $stmt->execute(array_values($row));
+                    $stmt = $pdo->prepare("INSERT OR REPLACE INTO $table ($col_names) VALUES ($placeholders)");
+                    $stmt->execute(array_values($filtered_row));
                 } catch (Exception $ex) {}
             }
         }
