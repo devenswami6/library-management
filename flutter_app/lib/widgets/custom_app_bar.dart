@@ -4,6 +4,8 @@ import '../config/api_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/attendance_provider.dart';
+import '../providers/branding_provider.dart';
+import 'branding_logo_widget.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -28,9 +30,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     return AppBar(
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BrandingLogoWidget(size: 26, fallbackColor: Colors.white24),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
       backgroundColor: AppColors.primaryIndigo,
       iconTheme: const IconThemeData(color: Colors.white),

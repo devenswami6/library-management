@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/seat_provider.dart';
 import 'providers/attendance_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/branding_provider.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -57,6 +58,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SeatProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => BrandingProvider()),
       ],
       child: const StudyLibraryApp(),
     ),

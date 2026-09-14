@@ -256,7 +256,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       icon: Icons.chat_bubble_rounded,
                       color: const Color(0xFF0EA5E9),
                       badgeCount: _stats?['unread_chats_count'] ?? 0,
-                      onTap: () => Navigator.of(context).pushNamed('/admin_chat_threads'),
+                      onTap: () async {
+                        await Navigator.of(context).pushNamed('/admin_chat_threads');
+                        _loadStats();
+                      },
                     ),
                     const SizedBox(height: 10),
 

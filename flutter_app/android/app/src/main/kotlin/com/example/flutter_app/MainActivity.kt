@@ -23,7 +23,6 @@ class MainActivity: FlutterActivity() {
                     val baseUrl = call.argument<String>("baseUrl") ?: "https://library-management-hmwx.onrender.com"
                     if (userId > 0) {
                         LibraryNotificationService.startService(context, userId, baseUrl)
-                        requestBatteryOptimizationExemption()
                         result.success(true)
                     } else {
                         result.success(false)

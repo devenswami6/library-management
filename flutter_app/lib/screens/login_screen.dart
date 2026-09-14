@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/api_config.dart';
 import '../providers/auth_provider.dart';
+import '../providers/branding_provider.dart';
+import '../widgets/branding_logo_widget.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -184,33 +186,28 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Header Logo / Icon
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryIndigo.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.menu_book_rounded,
-                    size: 54,
-                    color: AppColors.primaryIndigo,
-                  ),
-                ),
+                const BrandingLogoWidget(size: 68),
                 const SizedBox(height: 12),
-                const Text(
-                  'Self-Study Library',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                Consumer<BrandingProvider>(
+                  builder: (context, branding, _) => Text(
+                    branding.appName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                Text(
-                  'Management Portal & Mobile App',
-                  style: TextStyle(
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 4),
+                Consumer<BrandingProvider>(
+                  builder: (context, branding, _) => Text(
+                    branding.appTagline,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

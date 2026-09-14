@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
+import '../providers/branding_provider.dart';
 import '../widgets/custom_app_bar.dart';
 
 class AppSettingsScreen extends StatefulWidget {
@@ -105,6 +107,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           _logoUrlController.text = res['app_logo_url'];
           _pickedLogoFile = null;
         }
+        Provider.of<BrandingProvider>(context, listen: false).fetchAppSettings();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(res['message'] ?? 'App Name & Logo updated successfully!'),

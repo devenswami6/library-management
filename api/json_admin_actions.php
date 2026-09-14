@@ -148,7 +148,7 @@ try {
 
         $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
         if ($admin_id <= 0) $admin_id = 1;
-        $unread_chats = (int)$pdo->query("SELECT COUNT(*) FROM chat_messages WHERE (receiver_id = $admin_id OR receiver_id = 1 OR receiver_id = 0) AND (is_read = 0 OR is_read IS NULL)")->fetchColumn();
+        $unread_chats = (int)$pdo->query("SELECT COUNT(*) FROM chat_messages WHERE sender_id != $admin_id AND (receiver_id = $admin_id OR receiver_id = 1 OR receiver_id = 0) AND (is_read = 0 OR is_read IS NULL)")->fetchColumn();
 
         echo json_encode([
             'success' => true,
@@ -847,7 +847,7 @@ try {
         }
 
         // Mark student's messages as read
-        $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?")
+        $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? AND (receiver_id = ? OR receiver_id = 1 OR receiver_id = 0)")
             ->execute([$student_id, $admin_id]);
 
         $stmt = $pdo->prepare("
