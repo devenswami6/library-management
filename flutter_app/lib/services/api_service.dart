@@ -650,18 +650,35 @@ class ApiService {
     required String appName,
     required String appLogoUrl,
     required String appTagline,
+    String? logoFilePath,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.jsonAdmin),
-        body: {
-          'action': 'update_app_settings',
-          'app_name': appName,
-          'app_logo_url': appLogoUrl,
-          'app_tagline': appTagline,
-        },
-      );
-      return jsonDecode(response.body);
+      if (logoFilePath != null && logoFilePath.isNotEmpty) {
+        final request = http.MultipartRequest(
+          'POST',
+          Uri.parse(ApiConfig.jsonAdmin),
+        );
+        request.fields['action'] = 'update_app_settings';
+        request.fields['app_name'] = appName;
+        request.fields['app_logo_url'] = appLogoUrl;
+        request.fields['app_tagline'] = appTagline;
+        request.files.add(await http.MultipartFile.fromPath('logo_file', logoFilePath));
+
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+        return jsonDecode(response.body);
+      } else {
+        final response = await http.post(
+          Uri.parse(ApiConfig.jsonAdmin),
+          body: {
+            'action': 'update_app_settings',
+            'app_name': appName,
+            'app_logo_url': appLogoUrl,
+            'app_tagline': appTagline,
+          },
+        );
+        return jsonDecode(response.body);
+      }
     } catch (e) {
       return {'success': false, 'message': 'Failed to update app settings: $e'};
     }

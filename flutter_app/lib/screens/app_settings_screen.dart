@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_app_bar.dart';
@@ -15,6 +17,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _taglineController = TextEditingController();
   final _logoUrlController = TextEditingController();
 
+  File? _pickedLogoFile;
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -65,6 +68,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     }
   }
 
+  Future<void> _pickLogoFromGallery() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (image != null) {
+      setState(() {
+        _pickedLogoFile = File(image.path);
+      });
+    }
+  }
+
   void _handleSaveSettings() async {
     final appName = _nameController.text.trim();
     final tagline = _taglineController.text.trim();
@@ -82,11 +95,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       appName: appName,
       appLogoUrl: logoUrl,
       appTagline: tagline,
+      logoFilePath: _pickedLogoFile?.path,
     );
     setState(() => _isSaving = false);
 
     if (mounted) {
       if (res['success'] == true) {
+        if (res['app_logo_url'] != null && res['app_logo_url'].toString().isNotEmpty) {
+          _logoUrlController.text = res['app_logo_url'];
+          _pickedLogoFile = null;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(res['message'] ?? 'App Name & Logo updated successfully!'),
@@ -131,22 +149,28 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _logoUrlController.text.isNotEmpty
-                                  ? Image.network(
-                                      _logoUrlController.text,
-                                      width: 44,
-                                      height: 44,
-                                      errorBuilder: (_, __, ___) => const CircleAvatar(
-                                        radius: 22,
-                                        backgroundColor: AppColors.primaryIndigo,
-                                        child: Icon(Icons.school_rounded, color: Colors.white, size: 24),
-                                      ),
-                                    )
-                                  : const CircleAvatar(
-                                      radius: 22,
-                                      backgroundColor: AppColors.primaryIndigo,
-                                      child: Icon(Icons.school_rounded, color: Colors.white, size: 24),
-                                    ),
+                              if (_pickedLogoFile != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(22),
+                                  child: Image.file(_pickedLogoFile!, width: 44, height: 44, fit: BoxFit.cover),
+                                )
+                              else if (_logoUrlController.text.isNotEmpty)
+                                Image.network(
+                                  _logoUrlController.text,
+                                  width: 44,
+                                  height: 44,
+                                  errorBuilder: (_, __, ___) => const CircleAvatar(
+                                    radius: 22,
+                                    backgroundColor: AppColors.primaryIndigo,
+                                    child: Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                                  ),
+                                )
+                              else
+                                const CircleAvatar(
+                                  radius: 22,
+                                  backgroundColor: AppColors.primaryIndigo,
+                                  child: Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                                ),
                               const SizedBox(width: 14),
                               Flexible(
                                 child: Column(
@@ -220,14 +244,63 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                               border: OutlineInputBorder(),
                             ),
                           ),
+                          const SizedBox(height: 16),
+
+                          // Gallery Image Upload Button
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.3)),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'App Logo Image',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: _pickLogoFromGallery,
+                                      icon: const Icon(Icons.photo_library_rounded, size: 18),
+                                      label: const Text('Pick from Gallery 🖼️'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primaryIndigo,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _pickedLogoFile != null
+                                            ? 'Selected: ${_pickedLogoFile!.path.split('/').last}'
+                                            : 'No image picked from gallery',
+                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 14),
 
                           // Custom Logo URL Field
                           TextField(
                             controller: _logoUrlController,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) {
+                              setState(() {
+                                _pickedLogoFile = null;
+                              });
+                            },
                             decoration: const InputDecoration(
-                              labelText: 'Custom App Logo URL (Optional)',
+                              labelText: 'Or Enter Image URL (Optional)',
                               hintText: 'https://example.com/logo.png',
                               prefixIcon: Icon(Icons.link_rounded, color: AppColors.primaryIndigo),
                               border: OutlineInputBorder(),
@@ -245,7 +318,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: _presetLogos.map((preset) {
-                              final isSelected = _logoUrlController.text == preset['url'];
+                              final isSelected = _logoUrlController.text == preset['url'] && _pickedLogoFile == null;
                               return ChoiceChip(
                                 label: Text(preset['name']!),
                                 selected: isSelected,
@@ -258,6 +331,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                                 onSelected: (val) {
                                   if (val) {
                                     setState(() {
+                                      _pickedLogoFile = null;
                                       _logoUrlController.text = preset['url']!;
                                     });
                                   }
