@@ -1047,6 +1047,16 @@ try {
         }
         exit();
 
+    } elseif ($action === 'restore_database') {
+        $res = restore_db_snapshot($pdo);
+        $total_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn();
+        echo json_encode([
+            'success' => $res,
+            'message' => $res ? "Database snapshot restored successfully with $total_students students!" : "Failed to restore snapshot.",
+            'total_students' => (int)$total_students
+        ]);
+        exit();
+
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid admin action specified.']);
         exit();

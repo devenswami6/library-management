@@ -26,6 +26,15 @@ if (!class_exists('ApiConfig')) {
 function save_db_snapshot($pdo) {
     try {
         $snapshot_file = __DIR__ . '/db_snapshot.json';
+        $user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        if (file_exists($snapshot_file)) {
+            $existing_raw = @file_get_contents($snapshot_file);
+            $existing_data = json_decode($existing_raw, true);
+            $existing_user_count = !empty($existing_data['users']) ? count($existing_data['users']) : 0;
+            if ($existing_user_count > $user_count) {
+                return; // Do not overwrite a richer snapshot with fewer users
+            }
+        }
         $tables = ['users', 'shifts', 'seats', 'allocations', 'fee_payments', 'attendance', 'complaints', 'notifications', 'chat_messages', 'system_settings'];
         $data = [];
         foreach ($tables as $t) {
@@ -58,13 +67,18 @@ function restore_db_snapshot($pdo) {
     try {
         foreach ($data as $table => $rows) {
             if (empty($rows)) continue;
+            $tbl_check = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='$table'")->fetch();
+            if (!$tbl_check) continue;
+
             $cols = array_keys($rows[0]);
             $placeholders = implode(',', array_fill(0, count($cols), '?'));
             $col_names = implode(',', $cols);
             
             $stmt = $pdo->prepare("INSERT OR REPLACE INTO $table ($col_names) VALUES ($placeholders)");
             foreach ($rows as $row) {
-                $stmt->execute(array_values($row));
+                try {
+                    $stmt->execute(array_values($row));
+                } catch (Exception $ex) {}
             }
         }
         return true;
@@ -92,14 +106,6 @@ function init_database($pdo) {
         registered_device_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
-
-    // Restore from persistent db_snapshot.json if database is newly initialized
-    try {
-        $user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-        if ($user_count == 0) {
-            restore_db_snapshot($pdo);
-        }
-    } catch (Exception $e) {}
 
     try {
         $pdo->exec("ALTER TABLE users ADD COLUMN otp_code TEXT");
@@ -341,6 +347,9 @@ function init_database($pdo) {
         $stmt_comp = $pdo->prepare("INSERT INTO complaints (user_id, category, subject, description, status) VALUES (?, ?, ?, ?, ?)");
         $stmt_comp->execute([$s1_id, 'AC/Cooling', 'AC temperature too cold near Row A', 'Please keep AC at 24°C, Row A seats are directly facing air flow.', 'open']);
     }
+
+    // Always attempt snapshot restore at end of initialization
+    restore_db_snapshot($pdo);
 }
 
 // Run initializer
