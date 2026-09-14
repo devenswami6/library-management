@@ -368,20 +368,9 @@ function init_database($pdo) {
 // Run initializer
 init_database($pdo);
 
-// Ensure snapshot is restored if database has fewer users than tracked in db_snapshot.json
+// Always sync snapshot into DB if db_snapshot.json exists
 try {
-    $snapshot_file = __DIR__ . '/db_snapshot.json';
-    if (file_exists($snapshot_file)) {
-        $raw = @file_get_contents($snapshot_file);
-        $snap_data = json_decode($raw, true);
-        if (!empty($snap_data['users'])) {
-            $snap_user_count = count($snap_data['users']);
-            $curr_user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-            if ($curr_user_count < $snap_user_count) {
-                restore_db_snapshot($pdo);
-            }
-        }
-    }
+    restore_db_snapshot($pdo);
 } catch (Exception $e) {}
 
 // Ensure notifications table exists
