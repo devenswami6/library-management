@@ -26,9 +26,22 @@ $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 try {
     $pdo->exec("UPDATE users SET status = 'approved' WHERE (status = 'pending' OR status = 'active') AND id IN (SELECT user_id FROM allocations WHERE status = 'active')");
 
+    if ($action === 'restore_database') {
+        $res = restore_db_snapshot($pdo);
+        $total_users = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        $student_count = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn();
+        echo json_encode([
+            'success' => $res,
+            'message' => "Database snapshot restored successfully with $student_count students ($total_users total users)!",
+            'total_users' => $total_users,
+            'student_count' => $student_count
+        ]);
+        exit();
+    }
+
     if ($action === 'get_dashboard_stats') {
-        $total_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND (status = 'approved' OR status = 'active')")->fetchColumn();
-        $pending_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND status = 'pending'")->fetchColumn();
+        $total_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_deleted = 0 AND (status = 'approved' OR status = 'active')")->fetchColumn();
+        $pending_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_deleted = 0 AND status = 'pending'")->fetchColumn();
         $total_seats = $pdo->query("SELECT COUNT(*) FROM seats WHERE is_active = 1")->fetchColumn();
         
         $today = date('Y-m-d');
