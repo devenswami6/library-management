@@ -65,6 +65,7 @@ function restore_db_snapshot($pdo) {
     if (empty($data) || empty($data['users'])) return false;
 
     try {
+        $pdo->exec("PRAGMA foreign_keys = OFF;");
         foreach ($data as $table => $rows) {
             if (empty($rows)) continue;
             $tbl_check = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='$table'")->fetch();
@@ -81,6 +82,7 @@ function restore_db_snapshot($pdo) {
                 } catch (Exception $ex) {}
             }
         }
+        $pdo->exec("PRAGMA foreign_keys = ON;");
         return true;
     } catch (Exception $e) {
         return false;
@@ -354,6 +356,22 @@ function init_database($pdo) {
 
 // Run initializer
 init_database($pdo);
+
+// Ensure snapshot is restored if database has fewer users than tracked in db_snapshot.json
+try {
+    $snapshot_file = __DIR__ . '/db_snapshot.json';
+    if (file_exists($snapshot_file)) {
+        $raw = @file_get_contents($snapshot_file);
+        $snap_data = json_decode($raw, true);
+        if (!empty($snap_data['users'])) {
+            $snap_user_count = count($snap_data['users']);
+            $curr_user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            if ($curr_user_count < $snap_user_count) {
+                restore_db_snapshot($pdo);
+            }
+        }
+    }
+} catch (Exception $e) {}
 
 // Ensure notifications table exists
 $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
