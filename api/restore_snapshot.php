@@ -5,7 +5,8 @@ header('Content-Type: application/json');
 
 require_once __DIR__ . '/../config/env.php';
 
-if (defined('APP_ENV') && APP_ENV === 'production') {
+// Fail-safe protection: Reject snapshot restore unless ALLOW_DB_RESET is explicitly set to true
+if (!defined('ALLOW_DB_RESET') || ALLOW_DB_RESET !== true) {
     http_response_code(403);
     echo json_encode([
         'success' => false,

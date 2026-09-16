@@ -5,11 +5,12 @@ header('Content-Type: application/json');
 
 require_once __DIR__ . '/../config/env.php';
 
-if (defined('APP_ENV') && APP_ENV === 'production' && (!defined('ALLOW_DB_RESET') || ALLOW_DB_RESET !== true)) {
+// Fail-safe protection: Reject reset unless ALLOW_DB_RESET is explicitly set to true
+if (!defined('ALLOW_DB_RESET') || ALLOW_DB_RESET !== true) {
     http_response_code(403);
     echo json_encode([
         'success' => false,
-        'message' => 'DATABASE RESET DENIED: Destructive operations are strictly disabled in production mode.'
+        'message' => 'DATABASE RESET DENIED: Destructive operations are strictly disabled in production.'
     ]);
     exit();
 }
