@@ -5,22 +5,22 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../config/auth.php';
 
 $shift_id = (int)($_GET['shift_id'] ?? 1);
-$current_user_id = (int)($_GET['user_id'] ?? ($_POST['user_id'] ?? (is_logged_in() ? $_SESSION['user_id'] : 0)));
+$current_user_id = (int)($_GET['user_id'] ?? ($_POST['user_id'] ?? 0));
 
 // Enforce Role-Based Access Control: Admin Only
 $is_admin_user = false;
 
-if (is_logged_in() && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-    $is_admin_user = true;
-} elseif ($current_user_id > 0) {
+if ($current_user_id > 0) {
     try {
-        $stmt_r = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+        $stmt_r = $pdo->prepare("SELECT role FROM users WHERE id = ? AND (is_deleted IS NULL OR is_deleted = 0)");
         $stmt_r->execute([$current_user_id]);
         $user_role = $stmt_r->fetchColumn();
         if ($user_role === 'admin') {
             $is_admin_user = true;
         }
     } catch (Exception $e) {}
+} elseif (is_logged_in() && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    $is_admin_user = true;
 }
 
 if (!$is_admin_user) {
