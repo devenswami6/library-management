@@ -850,12 +850,10 @@ try {
         }
 
         // Mark student's messages as read unconditionally
-        $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? OR (sender_id = ? AND receiver_id = ?)")
-            ->execute([$student_id, $student_id, $admin_id]);
+        $pdo->exec("UPDATE chat_messages SET is_read = 1 WHERE sender_id = $student_id");
 
         // Mark all notification popups for admin as read so alerts stop repeating
-        $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? OR user_id = 1 OR user_id = 0")
-            ->execute([$admin_id]);
+        $pdo->exec("UPDATE notifications SET is_read = 1 WHERE user_id = $admin_id OR user_id = 1 OR user_id = 0");
 
         save_db_snapshot($pdo);
 
