@@ -836,8 +836,7 @@ try {
         ");
         $threads = $stmt->fetchAll();
 
-        $debug_chat_rows = $pdo->query("SELECT * FROM chat_messages")->fetchAll();
-        echo json_encode(['success' => true, 'threads' => $threads, 'debug_chat_rows' => $debug_chat_rows]);
+        echo json_encode(['success' => true, 'threads' => $threads]);
         exit();
 
     } elseif ($action === 'get_admin_chat_messages') {
