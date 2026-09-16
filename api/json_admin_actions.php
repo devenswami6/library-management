@@ -413,6 +413,7 @@ try {
 
         $stmt = $pdo->prepare("INSERT INTO shifts (name, start_time, end_time, fee_amount, is_active) VALUES (?, ?, ?, ?, 1)");
         $stmt->execute([$name, $start_time, $end_time, $fee_amount]);
+        save_db_snapshot($pdo);
 
         echo json_encode(['success' => true, 'message' => "New Shift '$name' added successfully!"]);
         exit();
@@ -431,6 +432,7 @@ try {
 
         $stmt = $pdo->prepare("UPDATE shifts SET name = ?, start_time = ?, end_time = ?, fee_amount = ? WHERE id = ?");
         $stmt->execute([$name, $start_time, $end_time, $fee_amount, $shift_id]);
+        save_db_snapshot($pdo);
 
         echo json_encode(['success' => true, 'message' => "Shift '$name' details updated successfully!"]);
         exit();
@@ -446,6 +448,7 @@ try {
 
         $stmt = $pdo->prepare("UPDATE shifts SET is_active = ? WHERE id = ?");
         $stmt->execute([$is_active, $shift_id]);
+        save_db_snapshot($pdo);
 
         $status_text = ($is_active == 1) ? 'activated' : 'deactivated';
         echo json_encode(['success' => true, 'message' => "Shift has been $status_text."]);
@@ -847,11 +850,11 @@ try {
         }
 
         // Mark student's messages as read unconditionally
-        $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ?")
-            ->execute([$student_id]);
+        $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? OR (sender_id = ? AND receiver_id = ?)")
+            ->execute([$student_id, $student_id, $admin_id]);
 
-        // Also mark admin notifications corresponding to messages as read
-        $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE (user_id = ? OR user_id = 1 OR user_id = 0) AND title LIKE '%Message%'")
+        // Mark all notification popups for admin as read so alerts stop repeating
+        $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? OR user_id = 1 OR user_id = 0")
             ->execute([$admin_id]);
 
         save_db_snapshot($pdo);

@@ -33,7 +33,7 @@ class LibraryNotificationService : Service() {
 
     companion object {
         const val CHANNEL_ID_FOREGROUND = "library_fg_service_channel"
-        const val CHANNEL_ID_NOTIFS = "library_announcements_channel"
+        const val CHANNEL_ID_NOTIFS = "library_heads_up_v5"
         const val NOTIF_ID_FOREGROUND = 9999
         const val PREFS_NAME = "LibraryNotifPrefs"
         const val KEY_USER_ID = "user_id"
@@ -398,6 +398,7 @@ class LibraryNotificationService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVibrate(longArrayOf(0, 400, 200, 400))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(false)
             .setAutoCancel(true)
@@ -419,12 +420,16 @@ class LibraryNotificationService : Service() {
 
             val notifChannel = NotificationChannel(
                 CHANNEL_ID_NOTIFS,
-                "Library Notice Alerts",
+                "Library High-Priority Alerts",
                 NotificationManager.IMPORTANCE_HIGH
-            )
-            notifChannel.description = "Important announcements from library admin"
-            notifChannel.enableVibration(true)
-            notifChannel.enableLights(true)
+            ).apply {
+                description = "Important announcements, messages, and seat alerts"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 400, 200, 400)
+                enableLights(true)
+                lightColor = android.graphics.Color.GREEN
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            }
 
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(fgChannel)

@@ -88,7 +88,7 @@ function restore_db_snapshot($pdo) {
                 $col_names = implode(',', $cols);
                 
                 try {
-                    $stmt = $pdo->prepare("INSERT OR REPLACE INTO $table ($col_names) VALUES ($placeholders)");
+                    $stmt = $pdo->prepare("INSERT OR IGNORE INTO $table ($col_names) VALUES ($placeholders)");
                     $stmt->execute(array_values($filtered_row));
                 } catch (Exception $ex) {}
             }
@@ -380,7 +380,7 @@ function init_database($pdo) {
         $placeholders = implode(',', array_fill(0, count($cols), '?'));
         $col_names = implode(',', $cols);
         try {
-            $stmt = $pdo->prepare("INSERT OR REPLACE INTO allocations ($col_names) VALUES ($placeholders)");
+            $stmt = $pdo->prepare("INSERT OR IGNORE INTO allocations ($col_names) VALUES ($placeholders)");
             $stmt->execute(array_values($a));
         } catch (Exception $ex) {}
     }

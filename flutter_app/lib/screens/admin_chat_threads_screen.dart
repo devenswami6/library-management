@@ -257,6 +257,10 @@ class _AdminChatThreadsScreenState extends State<AdminChatThreadsScreen> {
                                       )
                                     : const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
                                 onTap: () async {
+                                  setState(() {
+                                    item['unread_count'] = 0;
+                                    _applySearch();
+                                  });
                                   await Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (ctx) => AdminChatConversationScreen(
