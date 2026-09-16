@@ -33,7 +33,7 @@ class LibraryNotificationService : Service() {
 
     companion object {
         const val CHANNEL_ID_FOREGROUND = "library_fg_service_channel"
-        const val CHANNEL_ID_NOTIFS = "library_heads_up_v5"
+        const val CHANNEL_ID_NOTIFS = "library_heads_up_v6"
         const val NOTIF_ID_FOREGROUND = 9999
         const val PREFS_NAME = "LibraryNotifPrefs"
         const val KEY_USER_ID = "user_id"

@@ -386,9 +386,6 @@ function init_database($pdo) {
     }
     $pdo->exec("PRAGMA foreign_keys = ON;");
 
-    // Always attempt snapshot restore at end of initialization
-    restore_db_snapshot($pdo);
-
     // Auto-purge chat_messages and notifications strictly older than 48 hours
     try {
         $pdo->exec("DELETE FROM chat_messages WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
@@ -396,13 +393,24 @@ function init_database($pdo) {
     } catch (Exception $e) {}
 }
 
+// Check if database is fresh/empty
+$is_fresh_db = false;
+try {
+    $user_cnt = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    if ($user_cnt == 0) $is_fresh_db = true;
+} catch (Exception $e) {
+    $is_fresh_db = true;
+}
+
 // Run initializer
 init_database($pdo);
 
-// Always sync snapshot into DB if db_snapshot.json exists
-try {
-    restore_db_snapshot($pdo);
-} catch (Exception $e) {}
+// Restore snapshot ONLY on fresh/empty database startup
+if ($is_fresh_db) {
+    try {
+        restore_db_snapshot($pdo);
+    } catch (Exception $e) {}
+}
 
 // Ensure notifications table exists
 $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
@@ -419,7 +427,7 @@ try {
     $pdo->exec("UPDATE shifts SET name = 'Full Day', start_time = '08:00', end_time = '22:00' WHERE id = 3 AND name LIKE '%24 Hours%'");
     $stmt_check4 = $pdo->query("SELECT id FROM shifts WHERE id = 4")->fetch();
     if (!$stmt_check4) {
-        $pdo->exec("INSERT INTO shifts (id, name, start_time, end_time, fee_amount, is_active) VALUES (4, 'Full Day (24 Hours)', '00:00', '23:59', 1200.00, 1)");
+        $pdo->exec("INSERT INTO shifts (id, name, start_time, end_time, fee_amount, is_active) VALUES (4, 'Full Day (24 Hours)', '00:00', '23:59', 1200.00, 0)");
     }
 } catch (Exception $e) {}
 ?>
