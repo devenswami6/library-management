@@ -826,7 +826,7 @@ try {
                     WHERE (sender_id = u.id AND receiver_id = $admin_id) OR (sender_id = $admin_id AND receiver_id = u.id) 
                     ORDER BY id DESC LIMIT 1) as last_message_time,
                    (SELECT COUNT(*) FROM chat_messages 
-                    WHERE sender_id = u.id AND (is_read = 0 OR is_read IS NULL)) as unread_count
+                    WHERE sender_id = u.id AND is_read = 0) as unread_count
             FROM users u
             LEFT JOIN allocations a ON u.id = a.user_id AND a.status = 'active'
             LEFT JOIN seats s ON a.seat_id = s.id
@@ -850,7 +850,7 @@ try {
         }
 
         // Mark student's messages as read unconditionally
-        $pdo->exec("UPDATE chat_messages SET is_read = 1 WHERE sender_id = $student_id");
+        $pdo->exec("UPDATE chat_messages SET is_read = 1 WHERE sender_id = $student_id OR receiver_id = $student_id");
 
         // Mark all notification popups for admin as read so alerts stop repeating
         $pdo->exec("UPDATE notifications SET is_read = 1 WHERE user_id = $admin_id OR user_id = 1 OR user_id = 0");
