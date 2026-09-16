@@ -1,7 +1,18 @@
 <?php
-// api/restore_snapshot.php - Direct endpoint to trigger database snapshot restore
+// api/restore_snapshot.php - Secure Snapshot Restore Endpoint
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json');
+
+require_once __DIR__ . '/../config/env.php';
+
+if (defined('APP_ENV') && APP_ENV === 'production') {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'SNAPSHOT RESTORE DENIED: Overwriting production data with snapshot files is prohibited.'
+    ]);
+    exit();
+}
 
 require_once __DIR__ . '/../config/db.php';
 
@@ -22,3 +33,4 @@ try {
         'message' => "Error: " . $e->getMessage()
     ]);
 }
+?>

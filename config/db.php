@@ -1,7 +1,12 @@
 <?php
-// config/db.php - Database connection and SQLite auto-initialization
+// config/db.php - Database connection, non-destructive migrations, and production data safety
+require_once __DIR__ . '/env.php';
 
-$db_file = __DIR__ . '/../library.db';
+$db_file = DB_PATH;
+$db_dir = dirname($db_file);
+if (!file_exists($db_dir)) {
+    @mkdir($db_dir, 0777, true);
+}
 
 try {
     $pdo = new PDO("sqlite:" . $db_file);
@@ -17,13 +22,10 @@ try {
     die("Database Connection Error: " . $e->getMessage());
 }
 
-if (!class_exists('ApiConfig')) {
-    class ApiConfig {
-        public static $baseUrl = 'https://library-management-hmwx.onrender.com';
-    }
-}
-
 function save_db_snapshot($pdo) {
+    if (defined('APP_ENV') && APP_ENV === 'production') {
+        return; // Production mode strictly prevents modifying dev snapshot file
+    }
     try {
         $snapshot_file = __DIR__ . '/db_snapshot.json';
         $user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
@@ -49,12 +51,15 @@ function save_db_snapshot($pdo) {
 }
 
 register_shutdown_function(function() use ($pdo) {
-    if (isset($_SERVER['REQUEST_METHOD']) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'DELETE'])) {
+    if (defined('APP_ENV') && APP_ENV === 'development' && isset($_SERVER['REQUEST_METHOD']) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'DELETE'])) {
         save_db_snapshot($pdo);
     }
 });
 
 function restore_db_snapshot($pdo) {
+    if (defined('APP_ENV') && APP_ENV === 'production') {
+        return false; // Production mode strictly forbids restoring snapshot JSON over live DB
+    }
     $snapshot_file = __DIR__ . '/db_snapshot.json';
     if (!file_exists($snapshot_file)) return false;
     
@@ -393,6 +398,51 @@ function init_database($pdo) {
     } catch (Exception $e) {}
 }
 
+function run_migrations($pdo) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS schema_migrations (
+            version INTEGER PRIMARY KEY,
+            migration_name TEXT NOT NULL,
+            applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )");
+
+        $applied = $pdo->query("SELECT version FROM schema_migrations")->fetchAll(PDO::FETCH_COLUMN);
+        if ($applied === false) $applied = [];
+
+        $migrations = [
+            1 => [
+                'name' => 'add_user_extra_fields',
+                'sql' => function($pdo) {
+                    try { $pdo->exec("ALTER TABLE users ADD COLUMN father_name TEXT"); } catch(Exception $e){}
+                    try { $pdo->exec("ALTER TABLE users ADD COLUMN address TEXT"); } catch(Exception $e){}
+                    try { $pdo->exec("ALTER TABLE users ADD COLUMN is_deleted INTEGER DEFAULT 0"); } catch(Exception $e){}
+                    try { $pdo->exec("ALTER TABLE users ADD COLUMN deleted_at DATETIME"); } catch(Exception $e){}
+                }
+            ],
+            2 => [
+                'name' => 'ensure_shifts_migration',
+                'sql' => function($pdo) {
+                    try {
+                        $pdo->exec("UPDATE shifts SET name = 'Full Day', start_time = '08:00', end_time = '22:00' WHERE id = 3 AND name LIKE '%24 Hours%'");
+                        $stmt_check4 = $pdo->query("SELECT id FROM shifts WHERE id = 4")->fetch();
+                        if (!$stmt_check4) {
+                            $pdo->exec("INSERT INTO shifts (id, name, start_time, end_time, fee_amount, is_active) VALUES (4, 'Full Day (24 Hours)', '00:00', '23:59', 1200.00, 0)");
+                        }
+                    } catch (Exception $e) {}
+                }
+            ]
+        ];
+
+        foreach ($migrations as $ver => $m) {
+            if (!in_array($ver, $applied)) {
+                $m['sql']($pdo);
+                $stmt = $pdo->prepare("INSERT OR IGNORE INTO schema_migrations (version, migration_name) VALUES (?, ?)");
+                $stmt->execute([$ver, $m['name']]);
+            }
+        }
+    } catch (Exception $e) {}
+}
+
 // Check if database is fresh/empty
 $is_fresh_db = false;
 try {
@@ -405,29 +455,13 @@ try {
 // Run initializer
 init_database($pdo);
 
-// Restore snapshot ONLY on fresh/empty database startup
-if ($is_fresh_db) {
+// Restore snapshot ONLY on fresh/empty database startup AND if NOT production
+if ($is_fresh_db && (!defined('APP_ENV') || APP_ENV !== 'production')) {
     try {
         restore_db_snapshot($pdo);
     } catch (Exception $e) {}
 }
 
-// Ensure notifications table exists
-$pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER DEFAULT 0,
-    title TEXT NOT NULL,
-    message TEXT NOT NULL,
-    is_read INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)");
-
-// Migration check: Ensure shift #3 is 'Full Day' and shift #4 is 'Full Day (24 Hours)'
-try {
-    $pdo->exec("UPDATE shifts SET name = 'Full Day', start_time = '08:00', end_time = '22:00' WHERE id = 3 AND name LIKE '%24 Hours%'");
-    $stmt_check4 = $pdo->query("SELECT id FROM shifts WHERE id = 4")->fetch();
-    if (!$stmt_check4) {
-        $pdo->exec("INSERT INTO shifts (id, name, start_time, end_time, fee_amount, is_active) VALUES (4, 'Full Day (24 Hours)', '00:00', '23:59', 1200.00, 0)");
-    }
-} catch (Exception $e) {}
+// Run non-destructive schema migrations
+run_migrations($pdo);
 ?>

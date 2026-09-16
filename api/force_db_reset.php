@@ -1,9 +1,20 @@
 <?php
-// api/force_db_reset.php - Force clean database reset and master re-seed
+// api/force_db_reset.php - Secure Database Reset Endpoint
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json');
 
-$db_file = __DIR__ . '/../library.db';
+require_once __DIR__ . '/../config/env.php';
+
+if (defined('APP_ENV') && APP_ENV === 'production' && (!defined('ALLOW_DB_RESET') || ALLOW_DB_RESET !== true)) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'DATABASE RESET DENIED: Destructive operations are strictly disabled in production mode.'
+    ]);
+    exit();
+}
+
+$db_file = DB_PATH;
 if (file_exists($db_file)) {
     @unlink($db_file);
 }
@@ -16,8 +27,9 @@ $approved_students = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = '
 
 echo json_encode([
     'success' => true,
-    'message' => "Database reset and master re-seeded successfully!",
+    'message' => "Database reset completed safely.",
     'total_users' => $user_count,
     'student_count' => $student_count,
     'approved_students' => $approved_students
 ]);
+?>
