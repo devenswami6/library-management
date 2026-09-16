@@ -26,8 +26,13 @@ class _SeatMatrixScreenState extends State<SeatMatrixScreen> {
   }
 
   void _loadShiftsAndMatrix() async {
-    final shifts = await ApiService.getShifts();
     final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
+    if (user?.role != 'admin') {
+      setState(() => _isLoadingShifts = false);
+      return;
+    }
+
+    final shifts = await ApiService.getShifts();
 
     setState(() {
       _shifts = shifts;
@@ -107,6 +112,44 @@ class _SeatMatrixScreenState extends State<SeatMatrixScreen> {
     final seatProvider = Provider.of<SeatProvider>(context);
     final isAdmin = user?.role == 'admin';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (!isAdmin) {
+      return Scaffold(
+        appBar: const CustomAppBar(title: 'Access Restricted'),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.block_rounded, size: 72, color: AppColors.statusDanger),
+                const SizedBox(height: 16),
+                const Text(
+                  'Access Denied 🚫',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.statusDanger),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'The Visual Seat Matrix Grid is restricted to Library Administrators only.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Go Back'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryIndigo,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: const CustomAppBar(title: 'Visual Seat Matrix Grid'),

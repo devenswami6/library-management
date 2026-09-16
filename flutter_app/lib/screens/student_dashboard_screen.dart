@@ -643,7 +643,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
                       ),
                     const SizedBox(height: 16),
 
-                    // 5. 2x2 Feature Shortcuts Grid (Concept B)
+                    // 5. Feature Shortcuts Grid
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
@@ -652,14 +652,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
                       mainAxisSpacing: 12,
                       childAspectRatio: 2.2,
                       children: [
-                        _buildConceptBGridShortcut(
-                          context,
-                          icon: Icons.grid_view_rounded,
-                          title: 'View Seat Matrix',
-                          subtitle: 'Check availability',
-                          color: AppColors.primaryIndigo,
-                          onTap: () => Navigator.of(context).pushNamed('/seat_matrix'),
-                        ),
                         _buildConceptBGridShortcut(
                           context,
                           icon: Icons.receipt_long_rounded,
