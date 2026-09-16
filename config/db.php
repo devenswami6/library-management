@@ -329,6 +329,7 @@ function init_database($pdo) {
     foreach ($alter_cols as $c_name => $c_type) {
         try { $pdo->exec("ALTER TABLE users ADD COLUMN $c_name $c_type"); } catch (Exception $e) {}
     }
+    try { $pdo->exec("UPDATE users SET is_deleted = 0 WHERE is_deleted IS NULL"); } catch (Exception $e) {}
 
     // Auto-purge chat_messages and notifications strictly older than 48 hours
     try {
@@ -390,6 +391,14 @@ function run_migrations($pdo) {
                         $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_allocations_active_user ON allocations(user_id) WHERE status = 'active'");
                         // Create partial unique index on allocations: maximum 1 active student per seat desk per shift
                         $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_allocations_active_seat_shift ON allocations(seat_id, shift_id) WHERE status = 'active'");
+                    } catch (Exception $e) {}
+                }
+            ],
+            4 => [
+                'name' => 'normalize_is_deleted_nulls',
+                'sql' => function($pdo) {
+                    try {
+                        $pdo->exec("UPDATE users SET is_deleted = 0 WHERE is_deleted IS NULL");
                     } catch (Exception $e) {}
                 }
             ]

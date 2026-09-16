@@ -37,8 +37,8 @@ try {
     }
 
     if ($action === 'get_dashboard_stats') {
-        $total_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_deleted = 0 AND (status = 'approved' OR status = 'active')")->fetchColumn();
-        $pending_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_deleted = 0 AND status = 'pending'")->fetchColumn();
+        $total_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND (is_deleted IS NULL OR is_deleted = 0) AND (status = 'approved' OR status = 'active')")->fetchColumn();
+        $pending_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND (is_deleted IS NULL OR is_deleted = 0) AND status = 'pending'")->fetchColumn();
         $total_seats = $pdo->query("SELECT COUNT(*) FROM seats WHERE is_active = 1")->fetchColumn();
         
         $today = date('Y-m-d');
@@ -166,7 +166,7 @@ try {
             JOIN seats s ON a.seat_id = s.id
             JOIN shifts sh ON a.shift_id = sh.id
             LEFT JOIN attendance att ON u.id = att.user_id AND att.date = ?
-            WHERE u.role = 'student' AND (u.status = 'approved' OR u.status = 'active') AND u.is_deleted = 0
+            WHERE u.role = 'student' AND (u.status = 'approved' OR u.status = 'active') AND (u.is_deleted IS NULL OR u.is_deleted = 0)
             ORDER BY s.seat_number ASC
         ");
         $stmt_att->execute([$target_date]);

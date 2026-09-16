@@ -68,7 +68,7 @@ $stmt_att_full = $pdo->query("
     JOIN seats s ON a.seat_id = s.id
     JOIN shifts sh ON a.shift_id = sh.id
     LEFT JOIN attendance att ON u.id = att.user_id AND att.date = '$today'
-    WHERE u.role = 'student' AND (u.status = 'approved' OR u.status = 'active') AND u.is_deleted = 0
+    WHERE u.role = 'student' AND (u.status = 'approved' OR u.status = 'active') AND (u.is_deleted IS NULL OR u.is_deleted = 0)
     ORDER BY att.check_in_time DESC, u.name ASC
 ");
 $attendance_roster = $stmt_att_full->fetchAll(PDO::FETCH_ASSOC);

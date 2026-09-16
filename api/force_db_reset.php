@@ -24,7 +24,7 @@ require_once __DIR__ . '/../config/db.php';
 
 $user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $student_count = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn();
-$approved_students = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_deleted = 0 AND (status = 'approved' OR status = 'active')")->fetchColumn();
+$approved_students = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND (is_deleted IS NULL OR is_deleted = 0) AND (status = 'approved' OR status = 'active')")->fetchColumn();
 
 echo json_encode([
     'success' => true,
