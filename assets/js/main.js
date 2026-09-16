@@ -141,7 +141,7 @@ function loadSeatMatrix(shiftId) {
 
     gridContainer.innerHTML = '<div style="text-align:center; padding: 30px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px;">Loading hall layout...</p></div>';
 
-    fetch(`api/seat_matrix.php?shift_id=${shiftId}`)
+    fetch(`api/seat_matrix.php?shift_id=${shiftId}`, { credentials: 'same-origin' })
         .then(res => res.json())
         .then(data => {
             if (!data.success) {

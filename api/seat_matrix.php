@@ -15,12 +15,20 @@ if ($current_user_id > 0) {
         $stmt_r = $pdo->prepare("SELECT role FROM users WHERE id = ? AND (is_deleted IS NULL OR is_deleted = 0)");
         $stmt_r->execute([$current_user_id]);
         $user_role = $stmt_r->fetchColumn();
-        if ($user_role === 'admin') {
+        if ($user_role && strtolower(trim((string)$user_role)) === 'admin') {
             $is_admin_user = true;
         }
     } catch (Exception $e) {}
-} elseif (is_logged_in() && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-    $is_admin_user = true;
+}
+
+if (!$is_admin_user && is_logged_in()) {
+    if (function_exists('is_admin') && is_admin()) {
+        $is_admin_user = true;
+    } elseif (isset($_SESSION['user_role']) && strtolower(trim((string)$_SESSION['user_role'])) === 'admin') {
+        $is_admin_user = true;
+    } elseif (isset($_SESSION['role']) && strtolower(trim((string)$_SESSION['role'])) === 'admin') {
+        $is_admin_user = true;
+    }
 }
 
 if (!$is_admin_user) {
