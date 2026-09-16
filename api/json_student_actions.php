@@ -58,6 +58,14 @@ try {
             $user['status'] = 'approved';
         }
 
+        $user['seat_number'] = $alloc ? $alloc['seat_number'] : null;
+        $user['shift'] = $alloc ? [
+            'id' => $alloc['shift_id'],
+            'name' => $alloc['shift_name'],
+            'timing' => $alloc['start_time'] . ' - ' . $alloc['end_time'],
+            'fee' => $alloc['fee_amount']
+        ] : null;
+
         // Fetch today's attendance log
         $today = date('Y-m-d');
         $stmt_att = $pdo->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ? ORDER BY id DESC LIMIT 1");
@@ -275,8 +283,8 @@ try {
         if ($admin_id <= 0) $admin_id = 1;
 
         // Mark admin messages to student as read
-        $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?")
-            ->execute([$admin_id, $user_id]);
+        $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE receiver_id = ? OR (sender_id IN (SELECT id FROM users WHERE role = 'admin') AND receiver_id = ?)")
+            ->execute([$user_id, $user_id]);
 
         // Mark notifications from admin as read for student
         $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND title LIKE '%Admin%'")

@@ -268,7 +268,8 @@ try {
                 FROM allocations a
                 JOIN seats s ON a.seat_id = s.id
                 JOIN shifts sh ON a.shift_id = sh.id
-                WHERE a.user_id = ? AND a.status = 'active'
+                WHERE a.user_id = ? AND (a.status = 'active' OR a.status = 'approved')
+                ORDER BY a.id DESC LIMIT 1
             ");
             $stmt_alloc->execute([$user['id']]);
             $alloc = $stmt_alloc->fetch();

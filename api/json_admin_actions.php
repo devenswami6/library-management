@@ -27,59 +27,9 @@ try {
     $pdo->exec("UPDATE users SET status = 'approved' WHERE (status = 'pending' OR status = 'active') AND id IN (SELECT user_id FROM allocations WHERE status = 'active')");
 
     if ($action === 'debug_seed') {
-        $errors = [];
-        $pdo->exec("PRAGMA foreign_keys = OFF;");
-        $master_users = [
-            ['id' => 1, 'name' => 'Library Owner Admin', 'email' => 'admin@library.com', 'phone' => '9876543210', 'password' => '$2y$12$DzSrSmkHcFu1yWhNXmGj3.eBmtbkgLzRcJmFGzgu3O1azcFT7AE1G', 'role' => 'admin', 'status' => 'approved', 'is_deleted' => 0],
-            ['id' => 2, 'name' => 'Rahul Sharma', 'email' => 'rahul@gmail.com', 'phone' => '9812345678', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9812345600', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '1234-5678-9012', 'status' => 'approved', 'is_deleted' => 0],
-            ['id' => 3, 'name' => 'Priya Verma', 'email' => 'priya@gmail.com', 'phone' => '9823456789', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9823456700', 'id_proof_type' => 'Voter ID', 'id_proof_no' => 'ABC1234567', 'status' => 'approved', 'is_deleted' => 0],
-            ['id' => 4, 'name' => 'Amit Kumar', 'email' => 'amit@gmail.com', 'phone' => '9834567890', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9834567800', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '9876-5432-1098', 'status' => 'pending', 'is_deleted' => 1],
-            ['id' => 5, 'name' => 'Neha Patel', 'email' => 'neha@gmail.com', 'phone' => '9845678901', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9845678900', 'id_proof_type' => 'Student ID', 'id_proof_no' => 'STU9988', 'status' => 'approved', 'is_deleted' => 0],
-            ['id' => 6, 'name' => 'Deven Swami', 'email' => 'devenswami64@gmail.com', 'phone' => '07727880903', 'password' => '$2y$10$LYRhalZmnQEwe7XRYvtsYeq8.J1iHCIr1ra.gKXGqUB9K3iyxaKTm', 'role' => 'student', 'emergency_contact' => '07727880903', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '12341234123444', 'status' => 'approved', 'registered_device_id' => 'DEV-1788788407526-5718', 'is_deleted' => 0],
-            ['id' => 7, 'name' => 'Deven Swami', 'email' => 'thestylye4@gmail.com', 'phone' => '07727880903', 'password' => '$2y$10$MppgCIhhbe6KHRC8uXU7CeyjJS31eEPqvQxXQbvZZlW1EBGHl1Qg2', 'role' => 'student', 'emergency_contact' => '1234567890', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '123412341234', 'status' => 'approved', 'is_deleted' => 0],
-            ['id' => 8, 'name' => 'Mr ram', 'email' => 'ram@gmail.com', 'phone' => '9898989898', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9898989898', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '999988887777', 'status' => 'pending', 'is_deleted' => 0],
-            ['id' => 9, 'name' => 'jitu', 'email' => 'jitendrapuri766@gmail.com', 'phone' => '9782742040', 'password' => '$2y$10$y8UJEuDN8R.Nc6TM/eeAJudqUu5zTGhe4DEQFJrXz/WBxAVMB5JlW', 'role' => 'student', 'emergency_contact' => '2222222222', 'id_proof_type' => 'Aadhaar Card', 'id_proof_no' => '123456789013', 'status' => 'approved', 'is_deleted' => 0],
-            ['id' => 10, 'name' => 'Krishna', 'email' => 'thestyleboy6@gmail.com', 'phone' => '8888888888', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '8888888888', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '888877776666', 'status' => 'pending', 'is_deleted' => 0],
-            ['id' => 11, 'name' => 'DEV', 'email' => 'dev@gmail.com', 'phone' => '7777777777', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '7777777777', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '777766665555', 'status' => 'pending', 'is_deleted' => 0]
-        ];
-        $alter_cols = [
-            'otp_code' => 'TEXT',
-            'otp_expires_at' => 'DATETIME',
-            'registered_device_id' => 'TEXT',
-            'father_name' => 'TEXT',
-            'address' => 'TEXT',
-            'is_deleted' => 'INTEGER DEFAULT 0',
-            'deleted_at' => 'DATETIME'
-        ];
-        foreach ($alter_cols as $c_name => $c_type) {
-            try { $pdo->exec("ALTER TABLE users ADD COLUMN $c_name $c_type"); } catch (Exception $e) {}
-        }
-        $user_table_cols = [];
-        try {
-            $info = $pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($info as $col) {
-                $user_table_cols[] = $col['name'];
-            }
-        } catch (Exception $ex) {}
-
-        foreach ($master_users as $u) {
-            $filtered_u = !empty($user_table_cols) ? array_intersect_key($u, array_flip($user_table_cols)) : $u;
-            $cols = array_keys($filtered_u);
-            $placeholders = implode(',', array_fill(0, count($cols), '?'));
-            $col_names = implode(',', $cols);
-            try {
-                $stmt = $pdo->prepare("INSERT OR REPLACE INTO users ($col_names) VALUES ($placeholders)");
-                $stmt->execute(array_values($filtered_u));
-            } catch (Exception $ex) {
-                $errors[] = "User {$u['id']} ({$u['name']}): " . $ex->getMessage();
-            }
-        }
-        $pdo->exec("PRAGMA foreign_keys = ON;");
-        restore_db_snapshot($pdo);
-
         echo json_encode([
-            'success' => empty($errors),
-            'errors' => $errors,
+            'success' => true,
+            'message' => 'Production database is active and authoritative. No hardcoded seed injection.',
             'user_count' => (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn(),
             'students' => $pdo->query("SELECT id, name, email, status, is_deleted FROM users")->fetchAll()
         ]);
@@ -87,57 +37,6 @@ try {
     }
 
     if ($action === 'get_dashboard_stats') {
-        $student_count_check = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn();
-        if ($student_count_check < 6) {
-            $pdo->exec("PRAGMA foreign_keys = OFF;");
-            $master_users = [
-                ['id' => 1, 'name' => 'Library Owner Admin', 'email' => 'admin@library.com', 'phone' => '9876543210', 'password' => '$2y$12$DzSrSmkHcFu1yWhNXmGj3.eBmtbkgLzRcJmFGzgu3O1azcFT7AE1G', 'role' => 'admin', 'status' => 'approved', 'is_deleted' => 0],
-                ['id' => 2, 'name' => 'Rahul Sharma', 'email' => 'rahul@gmail.com', 'phone' => '9812345678', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9812345600', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '1234-5678-9012', 'status' => 'approved', 'is_deleted' => 0],
-                ['id' => 3, 'name' => 'Priya Verma', 'email' => 'priya@gmail.com', 'phone' => '9823456789', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9823456700', 'id_proof_type' => 'Voter ID', 'id_proof_no' => 'ABC1234567', 'status' => 'approved', 'is_deleted' => 0],
-                ['id' => 4, 'name' => 'Amit Kumar', 'email' => 'amit@gmail.com', 'phone' => '9834567890', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9834567800', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '9876-5432-1098', 'status' => 'pending', 'is_deleted' => 1],
-                ['id' => 5, 'name' => 'Neha Patel', 'email' => 'neha@gmail.com', 'phone' => '9845678901', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9845678900', 'id_proof_type' => 'Student ID', 'id_proof_no' => 'STU9988', 'status' => 'approved', 'is_deleted' => 0],
-                ['id' => 6, 'name' => 'Deven Swami', 'email' => 'devenswami64@gmail.com', 'phone' => '07727880903', 'password' => '$2y$10$LYRhalZmnQEwe7XRYvtsYeq8.J1iHCIr1ra.gKXGqUB9K3iyxaKTm', 'role' => 'student', 'emergency_contact' => '07727880903', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '12341234123444', 'status' => 'approved', 'registered_device_id' => 'DEV-1788788407526-5718', 'is_deleted' => 0],
-                ['id' => 7, 'name' => 'Deven Swami', 'email' => 'thestylye4@gmail.com', 'phone' => '07727880903', 'password' => '$2y$10$MppgCIhhbe6KHRC8uXU7CeyjJS31eEPqvQxXQbvZZlW1EBGHl1Qg2', 'role' => 'student', 'emergency_contact' => '1234567890', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '123412341234', 'status' => 'approved', 'is_deleted' => 0],
-                ['id' => 8, 'name' => 'Mr ram', 'email' => 'ram@gmail.com', 'phone' => '9898989898', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '9898989898', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '999988887777', 'status' => 'pending', 'is_deleted' => 0],
-                ['id' => 9, 'name' => 'jitu', 'email' => 'jitendrapuri766@gmail.com', 'phone' => '9782742040', 'password' => '$2y$10$y8UJEuDN8R.Nc6TM/eeAJudqUu5zTGhe4DEQFJrXz/WBxAVMB5JlW', 'role' => 'student', 'emergency_contact' => '2222222222', 'id_proof_type' => 'Aadhaar Card', 'id_proof_no' => '123456789013', 'status' => 'approved', 'is_deleted' => 0],
-                ['id' => 10, 'name' => 'Krishna', 'email' => 'thestyleboy6@gmail.com', 'phone' => '8888888888', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '8888888888', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '888877776666', 'status' => 'pending', 'is_deleted' => 0],
-                ['id' => 11, 'name' => 'DEV', 'email' => 'dev@gmail.com', 'phone' => '7777777777', 'password' => '$2y$10$Am4tp.dr.bWP/1zimiLideVNp/mePvhBVfwrK2056CywQvVVe7Vym', 'role' => 'student', 'emergency_contact' => '7777777777', 'id_proof_type' => 'Aadhaar', 'id_proof_no' => '777766665555', 'status' => 'pending', 'is_deleted' => 0]
-            ];
-            $alter_cols = [
-                'otp_code' => 'TEXT',
-                'otp_expires_at' => 'DATETIME',
-                'registered_device_id' => 'TEXT',
-                'father_name' => 'TEXT',
-                'address' => 'TEXT',
-                'is_deleted' => 'INTEGER DEFAULT 0',
-                'deleted_at' => 'DATETIME'
-            ];
-            foreach ($alter_cols as $c_name => $c_type) {
-                try { $pdo->exec("ALTER TABLE users ADD COLUMN $c_name $c_type"); } catch (Exception $e) {}
-            }
-
-            $user_table_cols = [];
-            try {
-                $info = $pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_ASSOC);
-                foreach ($info as $col) {
-                    $user_table_cols[] = $col['name'];
-                }
-            } catch (Exception $ex) {}
-
-            foreach ($master_users as $u) {
-                $filtered_u = !empty($user_table_cols) ? array_intersect_key($u, array_flip($user_table_cols)) : $u;
-                $cols = array_keys($filtered_u);
-                $placeholders = implode(',', array_fill(0, count($cols), '?'));
-                $col_names = implode(',', $cols);
-                try {
-                    $stmt = $pdo->prepare("INSERT OR REPLACE INTO users ($col_names) VALUES ($placeholders)");
-                    $stmt->execute(array_values($filtered_u));
-                } catch (Exception $ex) {}
-            }
-            $pdo->exec("PRAGMA foreign_keys = ON;");
-            restore_db_snapshot($pdo);
-        }
-
         $total_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_deleted = 0 AND (status = 'approved' OR status = 'active')")->fetchColumn();
         $pending_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_deleted = 0 AND status = 'pending'")->fetchColumn();
         $total_seats = $pdo->query("SELECT COUNT(*) FROM seats WHERE is_active = 1")->fetchColumn();
@@ -196,51 +95,65 @@ try {
             exit();
         }
 
-        // Check if seat desk is already occupied in this shift by another student
-        $stmt_check = $pdo->prepare("
-            SELECT a.id, u.name as student_name, s.seat_number, sh.name as shift_name
-            FROM allocations a
-            JOIN users u ON a.user_id = u.id
-            JOIN seats s ON a.seat_id = s.id
-            JOIN shifts sh ON a.shift_id = sh.id
-            WHERE a.seat_id = ? AND a.shift_id = ? AND a.status = 'active' AND a.user_id != ?
-        ");
-        $stmt_check->execute([$seat_id, $shift_id, $student_id]);
-        $occupied = $stmt_check->fetch();
-        if ($occupied) {
-            echo json_encode([
-                'success' => false,
-                'message' => "Seat Desk {$occupied['seat_number']} is ALREADY OCCUPIED by {$occupied['student_name']} in {$occupied['shift_name']}! Please select an available desk."
-            ]);
+        try {
+            $pdo->beginTransaction();
+
+            // Check if seat desk is already occupied in this shift by another student
+            $stmt_check = $pdo->prepare("
+                SELECT a.id, u.name as student_name, s.seat_number, sh.name as shift_name
+                FROM allocations a
+                JOIN users u ON a.user_id = u.id
+                JOIN seats s ON a.seat_id = s.id
+                JOIN shifts sh ON a.shift_id = sh.id
+                WHERE a.seat_id = ? AND a.shift_id = ? AND a.status = 'active' AND a.user_id != ?
+            ");
+            $stmt_check->execute([$seat_id, $shift_id, $student_id]);
+            $occupied = $stmt_check->fetch();
+            if ($occupied) {
+                $pdo->rollBack();
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Seat Desk {$occupied['seat_number']} is ALREADY OCCUPIED by {$occupied['student_name']} in {$occupied['shift_name']}! Please select an available desk."
+                ]);
+                exit();
+            }
+
+            // Approve user status
+            $pdo->prepare("UPDATE users SET status = 'approved' WHERE id = ?")->execute([$student_id]);
+
+            // Cancel/release all previous active/pending allocations for this student to ensure strictly 1 active allocation
+            $pdo->prepare("UPDATE allocations SET status = 'cancelled' WHERE user_id = ? AND status = 'active'")->execute([$student_id]);
+            $pdo->prepare("DELETE FROM allocations WHERE user_id = ? AND status = 'pending'")->execute([$student_id]);
+
+            // Insert new active allocation
+            $stmt_alloc = $pdo->prepare("
+                INSERT INTO allocations (user_id, seat_id, shift_id, start_date, status, notes)
+                VALUES (?, ?, ?, DATE('now'), 'active', 'Seat desk allotted by Admin')
+            ");
+            $stmt_alloc->execute([$student_id, $seat_id, $shift_id]);
+
+            // Fetch seat number for response notification
+            $stmt_s = $pdo->prepare("SELECT seat_number FROM seats WHERE id = ?");
+            $stmt_s->execute([$seat_id]);
+            $seat_no = $stmt_s->fetchColumn();
+
+            // Create notification for student
+            $pdo->prepare("
+                INSERT INTO notifications (title, message, user_id)
+                VALUES ('Seat Allotted!', 'Congratulations! Admin has allotted Seat Desk: " . $seat_no . " to you.', ?)
+            ")->execute([$student_id]);
+
+            $pdo->commit();
+
+            echo json_encode(['success' => true, 'message' => "Seat Desk $seat_no allotted successfully!"]);
+            exit();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['success' => false, 'message' => 'Failed to allot seat desk: ' . $e->getMessage()]);
             exit();
         }
-
-        // Approve user
-        $pdo->prepare("UPDATE users SET status = 'approved' WHERE id = ?")->execute([$student_id]);
-
-        // Remove old pending allocation if any
-        $pdo->prepare("DELETE FROM allocations WHERE user_id = ?")->execute([$student_id]);
-
-        // Insert new active allocation
-        $stmt_alloc = $pdo->prepare("
-            INSERT INTO allocations (user_id, seat_id, shift_id, start_date, status, notes)
-            VALUES (?, ?, ?, DATE('now'), 'active', 'Seat desk allotted by Admin')
-        ");
-        $stmt_alloc->execute([$student_id, $seat_id, $shift_id]);
-
-        // Fetch seat number for response notification
-        $stmt_s = $pdo->prepare("SELECT seat_number FROM seats WHERE id = ?");
-        $stmt_s->execute([$seat_id]);
-        $seat_no = $stmt_s->fetchColumn();
-
-        // Create notification for student
-        $pdo->prepare("
-            INSERT INTO notifications (title, message, user_id)
-            VALUES ('Seat Allotted!', 'Congratulations! Admin has allotted Seat Desk: " . $seat_no . " to you.', ?)
-        ")->execute([$student_id]);
-
-        echo json_encode(['success' => true, 'message' => "Seat Desk $seat_no allotted successfully!"]);
-        exit();
 
     } elseif ($action === 'get_live_attendance') {
         $target_date = trim($_GET['date'] ?? ($_POST['date'] ?? date('Y-m-d')));

@@ -33,42 +33,47 @@ if ($action === 'approve_student') {
         exit();
     }
 
-    $stmt = $pdo->prepare("UPDATE users SET status = 'approved' WHERE id = ?");
-    $stmt->execute([$user_id]);
+    try {
+        $pdo->beginTransaction();
 
-    $existing = $pdo->prepare("SELECT id FROM allocations WHERE user_id = ?");
-    $existing->execute([$user_id]);
-    $alloc = $existing->fetch();
+        $stmt = $pdo->prepare("UPDATE users SET status = 'approved' WHERE id = ?");
+        $stmt->execute([$user_id]);
 
-    if ($alloc) {
-        $stmt_alloc = $pdo->prepare("UPDATE allocations SET seat_id = ?, shift_id = ?, start_date = ?, status = 'active' WHERE id = ?");
-        $stmt_alloc->execute([$seat_id, $shift_id, $start_date, $alloc['id']]);
-        $allocation_id = $alloc['id'];
-    } else {
+        // Cancel previous active allocations for user to ensure single active allocation
+        $pdo->prepare("UPDATE allocations SET status = 'cancelled' WHERE user_id = ? AND status = 'active'")->execute([$user_id]);
+
         $stmt_alloc = $pdo->prepare("INSERT INTO allocations (user_id, seat_id, shift_id, start_date, status) VALUES (?, ?, ?, ?, 'active')");
         $stmt_alloc->execute([$user_id, $seat_id, $shift_id, $start_date]);
         $allocation_id = $pdo->lastInsertId();
+
+        $shift = $pdo->prepare("SELECT fee_amount FROM shifts WHERE id = ?");
+        $shift->execute([$shift_id]);
+        $fee_amount = $shift->fetchColumn();
+
+        $current_month = date('Y-m');
+        $due_date = get_current_due_date($start_date);
+
+        $check_fee = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ?");
+        $check_fee->execute([$allocation_id, $current_month]);
+        if (!$check_fee->fetch()) {
+            $stmt_fee = $pdo->prepare("INSERT INTO fee_payments (allocation_id, user_id, month_year, amount, due_date, payment_status) VALUES (?, ?, ?, ?, ?, 'pending')");
+            $stmt_fee->execute([$allocation_id, $user_id, $current_month, $fee_amount, $due_date]);
+        }
+
+        $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)")
+            ->execute([$user_id, 'Seat Allotment Approved 🎉', 'Your library membership registration has been approved! Your desk seat and shift timing have been assigned.']);
+
+        $pdo->commit();
+
+        header("Location: ../admin_dashboard.php?tab=students&msg=" . urlencode("Student approved and seat allotted successfully!"));
+        exit();
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        header("Location: ../admin_dashboard.php?tab=students&error=" . urlencode("Failed to allot seat: " . $e->getMessage()));
+        exit();
     }
-
-    $shift = $pdo->prepare("SELECT fee_amount FROM shifts WHERE id = ?");
-    $shift->execute([$shift_id]);
-    $fee_amount = $shift->fetchColumn();
-
-    $current_month = date('Y-m');
-    $due_date = get_current_due_date($start_date);
-
-    $check_fee = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ?");
-    $check_fee->execute([$allocation_id, $current_month]);
-    if (!$check_fee->fetch()) {
-        $stmt_fee = $pdo->prepare("INSERT INTO fee_payments (allocation_id, user_id, month_year, amount, due_date, payment_status) VALUES (?, ?, ?, ?, ?, 'pending')");
-        $stmt_fee->execute([$allocation_id, $user_id, $current_month, $fee_amount, $due_date]);
-    }
-
-    $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)")
-        ->execute([$user_id, 'Seat Allotment Approved 🎉', 'Your library membership registration has been approved! Your desk seat and shift timing have been assigned.']);
-
-    header("Location: ../admin_dashboard.php?tab=students&msg=" . urlencode("Student approved and seat allotted successfully!"));
-    exit();
 }
 
 // 2. PUT STUDENT ON HOLD / WAITING
