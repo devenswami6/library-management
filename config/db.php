@@ -417,13 +417,6 @@ try {
 // Run initializer
 init_database($pdo);
 
-// Restore snapshot ONLY on fresh/empty database startup AND if NOT production
-if ($is_fresh_db && (!defined('APP_ENV') || APP_ENV !== 'production')) {
-    try {
-        restore_db_snapshot($pdo);
-    } catch (Exception $e) {}
-}
-
 // Run non-destructive schema migrations
 run_migrations($pdo);
 ?>

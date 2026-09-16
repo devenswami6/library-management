@@ -708,7 +708,7 @@
         {
             "id": 3,
             "user_id": 6,
-            "seat_id": 3,
+            "seat_id": 4,
             "shift_id": 1,
             "start_date": "2026-09-04",
             "status": "active",

@@ -4,6 +4,7 @@ flutter_app/.dart_tool/
 library.db
 *.db
 *.sqlite
-*.db-journal
 *.db-wal
 *.db-shm
+*.pre_recovery_backup_*
+scratch/

@@ -6,7 +6,14 @@ if (!defined('APP_ENV')) {
 }
 
 if (!defined('DB_PATH')) {
-    define('DB_PATH', getenv('DB_PATH') ?: (__DIR__ . '/../library.db'));
+    $persistent_dir = '/var/www/html/data';
+    if (getenv('DB_PATH')) {
+        define('DB_PATH', getenv('DB_PATH'));
+    } elseif (file_exists($persistent_dir) && is_dir($persistent_dir)) {
+        define('DB_PATH', $persistent_dir . '/library.db');
+    } else {
+        define('DB_PATH', __DIR__ . '/../library.db');
+    }
 }
 
 if (!defined('ALLOW_DB_RESET')) {
