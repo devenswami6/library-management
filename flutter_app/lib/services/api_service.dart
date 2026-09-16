@@ -316,6 +316,26 @@ class ApiService {
     }
   }
 
+  // Mark notification read
+  static Future<Map<String, dynamic>> markNotificationRead(int userId, {int? notifId}) async {
+    try {
+      final body = {
+        'action': 'mark_notification_read',
+        'user_id': userId.toString(),
+      };
+      if (notifId != null) {
+        body['notif_id'] = notifId.toString();
+      }
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonStudent),
+        body: body,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to mark notification read: $e'};
+    }
+  }
+
   // Bulk Create Seats Range (e.g. Row E, 1 to 10 -> E-01 to E-10)
   static Future<Map<String, dynamic>> bulkCreateSeats(String rowLabel, int startNum, int endNum, {int formatDigits = 2}) async {
     try {

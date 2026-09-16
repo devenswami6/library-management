@@ -81,11 +81,11 @@ try {
             ];
         }
 
-        // Auto-delete notifications & chat messages older than 2 days (48 hours), complaints older than 1 month (30 days)
+        // Auto-delete notifications & chat messages older than 48 hours, complaints older than 30 days
         try {
-            $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
-            $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
-            $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+            $pdo->exec("DELETE FROM complaints WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-30 days')");
+            $pdo->exec("DELETE FROM notifications WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
+            $pdo->exec("DELETE FROM chat_messages WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
         } catch (Exception $e) {}
 
         // Fetch notifications
@@ -132,12 +132,13 @@ try {
     } elseif ($action === 'mark_notification_read') {
         $notif_id = (int)($_POST['notif_id'] ?? ($_GET['notif_id'] ?? 0));
         if ($notif_id > 0) {
-            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id > 0");
+            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?");
             $stmt_m->execute([$notif_id]);
         } else {
-            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?");
+            $stmt_m = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? OR user_id = 0");
             $stmt_m->execute([$user_id]);
         }
+        save_db_snapshot($pdo);
         echo json_encode(['success' => true]);
         exit();
 
@@ -265,9 +266,9 @@ try {
         exit();
 
     } elseif ($action === 'get_chat_messages') {
-        // Auto purge 2 days old messages
+        // Auto purge 48 hours old messages
         try {
-            $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+            $pdo->exec("DELETE FROM chat_messages WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
         } catch (Exception $e) {}
 
         $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
@@ -276,6 +277,10 @@ try {
         // Mark admin messages to student as read
         $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?")
             ->execute([$admin_id, $user_id]);
+
+        // Mark notifications from admin as read for student
+        $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND title LIKE '%Admin%'")
+            ->execute([$user_id]);
 
         $stmt = $pdo->prepare("
             SELECT cm.*, u_send.name as sender_name
@@ -302,8 +307,20 @@ try {
 
         $stmt = $pdo->prepare("INSERT INTO chat_messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
         $stmt->execute([$user_id, $admin_id, $msg_text]);
+        $msg_id = $pdo->lastInsertId();
 
-        echo json_encode(['success' => true, 'message_id' => $pdo->lastInsertId()]);
+        // Get student name for admin notification
+        $stmt_sname = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+        $stmt_sname->execute([$user_id]);
+        $sname = $stmt_sname->fetchColumn() ?: "Student";
+
+        // Insert notification row for Admin so status bar / alerts fire
+        $pdo->prepare("INSERT INTO notifications (title, message, user_id) VALUES (?, ?, ?)")
+            ->execute(["💬 New Message from $sname", $msg_text, $admin_id]);
+
+        save_db_snapshot($pdo);
+
+        echo json_encode(['success' => true, 'message_id' => $msg_id]);
         exit();
 
     } else {

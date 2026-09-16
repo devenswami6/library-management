@@ -31,8 +31,8 @@ function save_db_snapshot($pdo) {
             $existing_raw = @file_get_contents($snapshot_file);
             $existing_data = json_decode($existing_raw, true);
             $existing_user_count = !empty($existing_data['users']) ? count($existing_data['users']) : 0;
-            if ($existing_user_count > $user_count) {
-                return; // Do not overwrite a richer snapshot with fewer users
+            if ($user_count == 0 && $existing_user_count > 0) {
+                return; // Prevent saving an empty/corrupted user snapshot
             }
         }
         $tables = ['users', 'shifts', 'seats', 'allocations', 'fee_payments', 'attendance', 'complaints', 'notifications', 'chat_messages', 'system_settings'];
@@ -155,15 +155,6 @@ function init_database($pdo) {
             $pdo->prepare("DELETE FROM users WHERE id IN ($in_clause)")->execute($old_ids);
         }
     } catch (Exception $e) {}
-    try {
-        $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
-    } catch (Exception $e) {}
-
-    // Auto-purge Notifications older than 2 days (48 hours)
-    try {
-        $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
-    } catch (Exception $e) {}
-
     // Auto-purge Help Complaints/Tickets older than 1 month (30 days)
     try {
         $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
@@ -397,6 +388,12 @@ function init_database($pdo) {
 
     // Always attempt snapshot restore at end of initialization
     restore_db_snapshot($pdo);
+
+    // Auto-purge chat_messages and notifications strictly older than 48 hours
+    try {
+        $pdo->exec("DELETE FROM chat_messages WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
+        $pdo->exec("DELETE FROM notifications WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
+    } catch (Exception $e) {}
 }
 
 // Run initializer

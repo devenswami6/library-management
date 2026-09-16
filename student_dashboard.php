@@ -33,11 +33,11 @@ if ($user) {
     $payments = $stmt_pay->fetchAll();
 }
 
-// Auto-purge notifications & chat messages older than 2 days (48 hours), complaints older than 1 month (30 days)
+// Auto-purge notifications & chat messages older than 48 hours, complaints older than 30 days
 try {
-    $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
-    $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
-    $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+    $pdo->exec("DELETE FROM complaints WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-30 days')");
+    $pdo->exec("DELETE FROM notifications WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
+    $pdo->exec("DELETE FROM chat_messages WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
 } catch (Exception $e) {}
 
 // Fetch Today's Attendance

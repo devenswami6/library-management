@@ -72,11 +72,11 @@ $stmt_att_full = $pdo->query("
     ORDER BY att.check_in_time DESC, u.name ASC
 ");
 $attendance_roster = $stmt_att_full->fetchAll(PDO::FETCH_ASSOC);
-// Auto-purge notifications & chat messages older than 2 days (48 hours), complaints older than 1 month (30 days)
+// Auto-purge notifications & chat messages older than 48 hours, complaints older than 30 days
 try {
-    $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
-    $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
-    $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+    $pdo->exec("DELETE FROM complaints WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-30 days')");
+    $pdo->exec("DELETE FROM notifications WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
+    $pdo->exec("DELETE FROM chat_messages WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
 } catch (Exception $e) {}
 
 // Fetch Complaints
@@ -1422,6 +1422,12 @@ function loadWebChatMessages() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                const targetThread = webChatThreadsData.find(t => parseInt(t.student_id) === currentSelectedStudentId);
+                if (targetThread && parseInt(targetThread.unread_count || 0) > 0) {
+                    targetThread.unread_count = 0;
+                    renderWebChatThreads();
+                }
+
                 const box = document.getElementById('webChatMessagesBox');
                 if (!box) return;
                 const adminId = parseInt(data.admin_id || 1);

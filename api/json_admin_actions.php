@@ -806,9 +806,9 @@ try {
 
     } elseif ($action === 'get_admin_chat_threads') {
         try {
-            $pdo->exec("DELETE FROM complaints WHERE created_at < DATETIME('now', '-30 days')");
-            $pdo->exec("DELETE FROM notifications WHERE created_at < DATETIME('now', '-2 days')");
-            $pdo->exec("DELETE FROM chat_messages WHERE created_at < DATETIME('now', '-2 days')");
+            $pdo->exec("DELETE FROM complaints WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-30 days')");
+            $pdo->exec("DELETE FROM notifications WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
+            $pdo->exec("DELETE FROM chat_messages WHERE created_at IS NOT NULL AND created_at != '' AND created_at < DATETIME('now', '-48 hours')");
         } catch (Exception $e) {}
 
         $admin_id = (int)$pdo->query("SELECT id FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn();
@@ -849,6 +849,12 @@ try {
         // Mark student's messages as read unconditionally
         $pdo->prepare("UPDATE chat_messages SET is_read = 1 WHERE sender_id = ?")
             ->execute([$student_id]);
+
+        // Also mark admin notifications corresponding to messages as read
+        $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE (user_id = ? OR user_id = 1 OR user_id = 0) AND title LIKE '%Message%'")
+            ->execute([$admin_id]);
+
+        save_db_snapshot($pdo);
 
         $stmt = $pdo->prepare("
             SELECT cm.*, u_send.name as sender_name
@@ -893,6 +899,8 @@ try {
             INSERT INTO notifications (title, message, user_id)
             VALUES ('New Message from Admin 💬', ?, ?)
         ")->execute([$msg_text, $student_id]);
+
+        save_db_snapshot($pdo);
 
         echo json_encode(['success' => true, 'message_id' => $msg_id]);
         exit();

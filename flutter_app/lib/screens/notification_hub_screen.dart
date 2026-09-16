@@ -104,6 +104,7 @@ class _NotificationHubScreenState extends State<NotificationHubScreen> with Sing
             _historyNotifs = list;
             _isLoadingNotifs = false;
           });
+          ApiService.markNotificationRead(user.id);
         } else {
           setState(() => _isLoadingNotifs = false);
         }
