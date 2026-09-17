@@ -659,9 +659,6 @@ try {
 
     } elseif ($action === 'backup_db') {
         $db_file = DB_PATH;
-        if (!file_exists($db_file) && file_exists(__DIR__ . '/../library.db')) {
-            $db_file = __DIR__ . '/../library.db';
-        }
         if (!file_exists($db_file)) {
             die("Database file not found at " . $db_file);
         }
@@ -756,19 +753,76 @@ try {
         exit();
 
     } elseif ($action === 'restore_db') {
+        $user_role = strtolower(trim($_SESSION['user_role'] ?? ''));
+        if ($user_role !== 'admin' && !is_admin()) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'ACCESS DENIED: Database restore is restricted to Admin access only.']);
+            exit();
+        }
+
         if (isset($_FILES['backup_file']) && $_FILES['backup_file']['error'] === UPLOAD_ERR_OK) {
             $tmp_name = $_FILES['backup_file']['tmp_name'];
             $db_file = DB_PATH;
+            $db_dir = dirname($db_file);
+
             try {
+                // 1. Validate uploaded SQLite file integrity
                 $test_pdo = new PDO("sqlite:" . $tmp_name);
-                $test_pdo->query("SELECT COUNT(*) FROM users");
+                $test_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                $integrity = $test_pdo->query("PRAGMA integrity_check")->fetchColumn();
+                if ($integrity !== 'ok') {
+                    throw new Exception("Uploaded database file failed integrity check: $integrity");
+                }
+                $users_count = (int)$test_pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                 $test_pdo = null;
+
+                // 2. PHASE 2 requirement: Create timestamped backup of current Render DB before restoring
+                if (file_exists($db_file)) {
+                    $timestamp = date('Ymd_His');
+                    $backup_file = $db_dir . '/library_backup_pre_restore_' . $timestamp . '.db';
+                    try {
+                        $current_pdo = new PDO("sqlite:" . $db_file);
+                        $current_pdo->exec("VACUUM INTO '" . str_replace("'", "''", $backup_file) . "'");
+                        $current_pdo = null;
+                    } catch (Exception $e) {
+                        copy($db_file, $backup_file);
+                    }
+
+                    // Verify integrity of pre-restore backup
+                    if (file_exists($backup_file)) {
+                        $b_pdo = new PDO("sqlite:" . $backup_file);
+                        $b_integrity = $b_pdo->query("PRAGMA integrity_check")->fetchColumn();
+                        $b_pdo = null;
+                        if ($b_integrity !== 'ok') {
+                            throw new Exception("Pre-restore database backup integrity check failed!");
+                        }
+                    }
+                }
+
+                // Close global PDO connection before replacing database file
                 $pdo = null;
 
-                copy($tmp_name, $db_file);
-                echo json_encode(['success' => true, 'message' => 'Database successfully restored from backup!']);
+                // 3. PHASE 3: Transfer uploaded database atomically to DB_PATH
+                if (copy($tmp_name, $db_file)) {
+                    // Verify post-migration integrity
+                    $post_pdo = new PDO("sqlite:" . $db_file);
+                    $post_integrity = $post_pdo->query("PRAGMA integrity_check")->fetchColumn();
+                    $post_pdo = null;
+
+                    if ($post_integrity !== 'ok') {
+                        throw new Exception("Post-migration database integrity check failed!");
+                    }
+
+                    echo json_encode([
+                        'success' => true,
+                        'message' => "Database successfully migrated/restored! ($users_count users loaded)",
+                        'db_path' => $db_file
+                    ]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to copy uploaded database file to ' . $db_file]);
+                }
             } catch (Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Invalid database backup file: ' . $e->getMessage()]);
+                echo json_encode(['success' => false, 'message' => 'Migration/Restore failed: ' . $e->getMessage()]);
             }
         } else {
             echo json_encode(['success' => false, 'message' => 'No database backup file uploaded.']);

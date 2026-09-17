@@ -271,9 +271,6 @@ if ($action === 'toggle_shift') {
 // 10. DOWNLOAD DATABASE BACKUP (.db)
 if ($action === 'backup_db') {
     $db_file = DB_PATH;
-    if (!file_exists($db_file) && file_exists(__DIR__ . '/../library.db')) {
-        $db_file = __DIR__ . '/../library.db';
-    }
     if (!file_exists($db_file)) {
         die("Database file not found at " . $db_file);
     }
