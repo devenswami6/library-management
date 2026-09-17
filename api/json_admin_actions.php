@@ -658,25 +658,42 @@ try {
         exit();
 
     } elseif ($action === 'backup_db') {
-        $db_file = __DIR__ . '/../library.db';
+        $db_file = DB_PATH;
         if (!file_exists($db_file)) {
             die("Database file not found.");
         }
-        $filename = "library_backup_" . date('Y-m-d_H-i-s') . ".sqlite";
+
+        $timestamp = date('Ymd_His');
+        $filename = "library_backup_" . $timestamp . ".db";
+        $temp_backup = sys_get_temp_dir() . '/' . $filename;
+        if (file_exists($temp_backup)) @unlink($temp_backup);
+
+        try {
+            $pdo->exec("VACUUM INTO " . $pdo->quote($temp_backup));
+        } catch (Exception $e) {
+            copy($db_file, $temp_backup);
+        }
+
+        $target_file = file_exists($temp_backup) ? $temp_backup : $db_file;
+
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . filesize($db_file));
-        readfile($db_file);
+        header('Content-Length: ' . filesize($target_file));
+        readfile($target_file);
+
+        if (file_exists($temp_backup)) {
+            @unlink($temp_backup);
+        }
         exit();
 
     } elseif ($action === 'get_database_backup_info') {
-        $db_file = __DIR__ . '/../library.db';
+        $db_file = DB_PATH;
         if (!file_exists($db_file)) {
             echo json_encode(['success' => false, 'message' => 'Database file not found.']);
             exit();
         }
 
-        $tables = ['users', 'allocations', 'seats', 'shifts', 'attendance', 'fee_payments', 'complaints', 'notifications', 'chat_messages'];
+        $tables = ['users', 'seats', 'shifts', 'allocations', 'fee_payments', 'attendance', 'complaints', 'chat_messages', 'notifications', 'system_settings'];
         $counts = [];
         foreach ($tables as $t) {
             try {
@@ -689,10 +706,11 @@ try {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
         $host = $_SERVER['HTTP_HOST'] ?? 'library-management-hmwx.onrender.com';
         $base_url = "$protocol://$host";
+        $timestamp = date('Ymd_His');
 
         echo json_encode([
             'success' => true,
-            'filename' => "library_backup_" . date('Y-m-d_H-i-s') . ".sqlite",
+            'filename' => "library_backup_" . $timestamp . ".db",
             'db_size_bytes' => filesize($db_file),
             'db_size_formatted' => round(filesize($db_file) / 1024, 2) . " KB",
             'table_counts' => $counts,
@@ -703,7 +721,7 @@ try {
     } elseif ($action === 'restore_db') {
         if (isset($_FILES['backup_file']) && $_FILES['backup_file']['error'] === UPLOAD_ERR_OK) {
             $tmp_name = $_FILES['backup_file']['tmp_name'];
-            $db_file = __DIR__ . '/../library.db';
+            $db_file = DB_PATH;
             try {
                 $test_pdo = new PDO("sqlite:" . $tmp_name);
                 $test_pdo->query("SELECT COUNT(*) FROM users");

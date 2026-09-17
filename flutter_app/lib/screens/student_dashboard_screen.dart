@@ -364,13 +364,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
                       children: [
                         _buildConceptBQuickAction(
                           context,
-                          icon: Icons.event_seat_rounded,
-                          label: 'My Seat',
-                          color: AppColors.primaryIndigo,
-                          onTap: () {},
-                        ),
-                        _buildConceptBQuickAction(
-                          context,
                           icon: Icons.access_time_filled_rounded,
                           label: 'Attendance',
                           color: AppColors.statusSuccess,

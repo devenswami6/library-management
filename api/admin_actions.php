@@ -268,25 +268,42 @@ if ($action === 'toggle_shift') {
     exit();
 }
 
-// 10. DOWNLOAD DATABASE BACKUP (.sqlite)
+// 10. DOWNLOAD DATABASE BACKUP (.db)
 if ($action === 'backup_db') {
-    $db_file = __DIR__ . '/../library.db';
+    $db_file = DB_PATH;
     if (!file_exists($db_file)) {
         die("Database file not found.");
     }
-    $filename = "library_backup_" . date('Y-m-d_H-i-s') . ".sqlite";
+
+    $timestamp = date('Ymd_His');
+    $filename = "library_backup_" . $timestamp . ".db";
+    $temp_backup = sys_get_temp_dir() . '/' . $filename;
+    if (file_exists($temp_backup)) @unlink($temp_backup);
+
+    try {
+        $pdo->exec("VACUUM INTO " . $pdo->quote($temp_backup));
+    } catch (Exception $e) {
+        copy($db_file, $temp_backup);
+    }
+
+    $target_file = file_exists($temp_backup) ? $temp_backup : $db_file;
+
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
-    header('Content-Length: ' . filesize($db_file));
-    readfile($db_file);
+    header('Content-Length: ' . filesize($target_file));
+    readfile($target_file);
+
+    if (file_exists($temp_backup)) {
+        @unlink($temp_backup);
+    }
     exit();
 }
 
-// 11. RESTORE DATABASE BACKUP (.sqlite)
+// 11. RESTORE DATABASE BACKUP (.db / .sqlite)
 if ($action === 'restore_db') {
     if (isset($_FILES['backup_file']) && $_FILES['backup_file']['error'] === UPLOAD_ERR_OK) {
         $tmp_name = $_FILES['backup_file']['tmp_name'];
-        $db_file = __DIR__ . '/../library.db';
+        $db_file = DB_PATH;
         
         try {
             $test_pdo = new PDO("sqlite:" . $tmp_name);
