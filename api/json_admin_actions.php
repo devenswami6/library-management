@@ -659,8 +659,11 @@ try {
 
     } elseif ($action === 'backup_db') {
         $db_file = DB_PATH;
+        if (!file_exists($db_file) && file_exists(__DIR__ . '/../library.db')) {
+            $db_file = __DIR__ . '/../library.db';
+        }
         if (!file_exists($db_file)) {
-            die("Database file not found.");
+            die("Database file not found at " . $db_file);
         }
 
         $timestamp = date('Ymd_His');
@@ -688,8 +691,11 @@ try {
 
     } elseif ($action === 'get_database_backup_info') {
         $db_file = DB_PATH;
+        if (!file_exists($db_file) && file_exists(__DIR__ . '/../library.db')) {
+            $db_file = __DIR__ . '/../library.db';
+        }
         if (!file_exists($db_file)) {
-            echo json_encode(['success' => false, 'message' => 'Database file not found.']);
+            echo json_encode(['success' => false, 'message' => 'Database file not found at ' . $db_file]);
             exit();
         }
 
