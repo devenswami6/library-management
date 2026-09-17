@@ -4,8 +4,23 @@ require_once __DIR__ . '/env.php';
 
 $db_file = DB_PATH;
 $db_dir = dirname($db_file);
-if (!file_exists($db_dir)) {
-    @mkdir($db_dir, 0777, true);
+
+// Fail-closed enforcement: In production, persistent storage directory must exist.
+// Do NOT silently create a new empty database file or folder if persistent disk is missing!
+if (defined('APP_ENV') && APP_ENV === 'production') {
+    if (!file_exists($db_dir) || !is_dir($db_dir)) {
+        http_response_code(503);
+        header('Content-Type: application/json');
+        die(json_encode([
+            'success' => false,
+            'error' => 'CRITICAL PRODUCTION DATABASE ERROR: Persistent storage directory ' . $db_dir . ' is not mounted or missing. Startup halted to protect production data.',
+            'db_path' => $db_file
+        ]));
+    }
+} else {
+    if (!file_exists($db_dir)) {
+        @mkdir($db_dir, 0777, true);
+    }
 }
 
 try {
@@ -20,6 +35,40 @@ try {
     $pdo->exec("PRAGMA temp_store = MEMORY;");
 } catch (PDOException $e) {
     die("Database Connection Error: " . $e->getMessage());
+}
+
+function get_db_identity_summary($pdo) {
+    $db_file = DB_PATH;
+    $exists = file_exists($db_file);
+    $size = $exists ? filesize($db_file) : 0;
+    
+    $users_count = 0;
+    $students_count = 0;
+    $active_students = 0;
+    $allocations_count = 0;
+    $schema_ver = 0;
+
+    if ($exists) {
+        try {
+            $users_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            $students_count = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn();
+            $active_students = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND (is_deleted IS NULL OR is_deleted = 0)")->fetchColumn();
+            $allocations_count = (int)$pdo->query("SELECT COUNT(*) FROM allocations WHERE status = 'active'")->fetchColumn();
+            $schema_ver = (int)$pdo->query("SELECT MAX(version) FROM schema_migrations")->fetchColumn();
+        } catch (Exception $e) {}
+    }
+
+    return [
+        'db_path' => $db_file,
+        'exists' => $exists,
+        'file_size_bytes' => $size,
+        'file_size_formatted' => round($size / 1024, 2) . " KB",
+        'schema_version' => $schema_ver,
+        'users_count' => $users_count,
+        'students_count' => $students_count,
+        'active_students' => $active_students,
+        'active_allocations' => $allocations_count
+    ];
 }
 
 function save_db_snapshot($pdo) {

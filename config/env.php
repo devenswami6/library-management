@@ -6,13 +6,13 @@ if (!defined('APP_ENV')) {
 }
 
 if (!defined('DB_PATH')) {
-    $persistent_dir = '/var/www/html/data';
     if (getenv('DB_PATH')) {
         define('DB_PATH', getenv('DB_PATH'));
-    } elseif (file_exists($persistent_dir) && is_dir($persistent_dir)) {
-        define('DB_PATH', $persistent_dir . '/library.db');
-    } else {
+    } elseif (defined('APP_ENV') && APP_ENV === 'development') {
         define('DB_PATH', __DIR__ . '/../library.db');
+    } else {
+        // Authoritative Production Database Path on Render Persistent Disk
+        define('DB_PATH', '/var/www/html/data/library.db');
     }
 }
 

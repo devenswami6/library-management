@@ -691,9 +691,6 @@ try {
 
     } elseif ($action === 'get_database_backup_info') {
         $db_file = DB_PATH;
-        if (!file_exists($db_file) && file_exists(__DIR__ . '/../library.db')) {
-            $db_file = __DIR__ . '/../library.db';
-        }
         if (!file_exists($db_file)) {
             echo json_encode(['success' => false, 'message' => 'Database file not found at ' . $db_file]);
             exit();
@@ -721,6 +718,40 @@ try {
             'db_size_formatted' => round(filesize($db_file) / 1024, 2) . " KB",
             'table_counts' => $counts,
             'backup_url' => "$base_url/api/json_admin_actions.php?action=backup_db"
+        ]);
+        exit();
+
+    } elseif ($action === 'get_db_fingerprint') {
+        $user_role = strtolower(trim($_SESSION['user_role'] ?? ''));
+        if ($user_role !== 'admin' && !is_admin()) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'ACCESS DENIED: Diagnostic fingerprint is restricted to Admin access only.']);
+            exit();
+        }
+
+        $summary = get_db_identity_summary($pdo);
+
+        $deven_seat = $pdo->query("
+            SELECT s.seat_number 
+            FROM allocations a 
+            JOIN seats s ON a.seat_id = s.id 
+            WHERE a.user_id = 6 AND a.status = 'active'
+        ")->fetchColumn();
+
+        $a03_active = (bool)$pdo->query("
+            SELECT COUNT(*) 
+            FROM allocations a 
+            JOIN seats s ON a.seat_id = s.id 
+            WHERE s.seat_number = 'A-03' AND a.status = 'active'
+        ")->fetchColumn();
+
+        echo json_encode([
+            'success' => true,
+            'fingerprint' => array_merge($summary, [
+                'deven_swami_seat' => $deven_seat ?: 'Unassigned',
+                'seat_a03_status' => $a03_active ? 'OCCUPIED' : 'AVAILABLE',
+                'server_time' => date('Y-m-d H:i:s')
+            ])
         ]);
         exit();
 
