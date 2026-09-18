@@ -719,12 +719,12 @@ try {
         exit();
 
     } elseif ($action === 'get_db_fingerprint') {
-        $user_role = strtolower(trim($_SESSION['user_role'] ?? ($_GET['user_role'] ?? '')));
-        $user_id = (int)($_SESSION['user_id'] ?? ($_GET['user_id'] ?? 0));
-        $is_admin_user = ($user_role === 'admin') || is_admin();
-        if (!$is_admin_user && $user_id > 0) {
+        $req_role = strtolower(trim($_REQUEST['user_role'] ?? ($_SESSION['user_role'] ?? '')));
+        $req_id = (int)($_REQUEST['user_id'] ?? ($_SESSION['user_id'] ?? 0));
+        $is_admin_user = ($req_role === 'admin') || is_admin();
+        if (!$is_admin_user && $req_id > 0) {
             try {
-                $is_admin_user = (bool)$pdo->query("SELECT COUNT(*) FROM users WHERE id = $user_id AND role = 'admin'")->fetchColumn();
+                $is_admin_user = ((int)$pdo->query("SELECT COUNT(*) FROM users WHERE id = $req_id AND role = 'admin'")->fetchColumn() > 0);
             } catch (Exception $e) {}
         }
         if (!$is_admin_user) {
