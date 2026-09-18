@@ -68,6 +68,11 @@ try {
                 }
             }
 
+            // Set session variables for authenticated API requests
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_name'] = $user['name'];
+            $_SESSION['user_role'] = $user['role'];
+
             // Clean up password hash before sending
             unset($user['password']);
             
