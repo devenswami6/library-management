@@ -189,7 +189,7 @@ foreach ($payments as $p) {
     <div class="statement-card">
         <div class="header-brand">
             <div>
-                <div class="title"><i class="fas fa-book-reader"></i> Keshav Library & Study Center</div>
+                <div class="title"><i class="<?php echo htmlspecialchars(LIBRARY_ICON_CLASS); ?>"></i> <?php echo htmlspecialchars(LIBRARY_NAME); ?></div>
                 <div class="subtitle">Official 12-Month Membership Fee Ledger Statement</div>
             </div>
             <div style="text-align: right;">
@@ -288,10 +288,10 @@ foreach ($payments as $p) {
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
             <div style="font-size: 0.75rem; color: #64748b;">
                 <p>Computer generated 12-month membership ledger statement.</p>
-                <p style="margin-top: 2px;">Keshav Library Management System &bull; All Rights Reserved.</p>
+                <p style="margin-top: 2px;"><?php echo htmlspecialchars(LIBRARY_NAME); ?> &bull; All Rights Reserved.</p>
             </div>
             <div style="text-align: center;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: #475569;">Keshav Library Admin</div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #475569;"><?php echo htmlspecialchars(LIBRARY_SHORT_NAME); ?> Admin</div>
                 <div style="font-size: 0.7rem; color: #94a3b8; border-top: 1px solid #cbd5e1; padding-top: 3px; margin-top: 3px; width: 140px;">Authorized Signatory</div>
             </div>
         </div>

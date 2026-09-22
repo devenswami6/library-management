@@ -20,14 +20,33 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Default base application ID
         applicationId = "com.example.flutter_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue "string", "app_name", "StudySpace"
+    }
+
+    flavorDimensions "default"
+
+    productFlavors {
+        studyspace {
+            dimension "default"
+            applicationId "com.studyspace.library"
+            resValue "string", "app_name", "StudySpace"
+        }
+        library_abc {
+            dimension "default"
+            applicationId "com.libraryabc.app"
+            resValue "string", "app_name", "ABC Library"
+        }
+        library_xyz {
+            dimension "default"
+            applicationId "com.libraryxyz.app"
+            resValue "string", "app_name", "XYZ Library"
+        }
     }
 
     buildTypes {

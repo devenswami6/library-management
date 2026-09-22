@@ -145,9 +145,9 @@ if (isset($_SESSION['user_id'])) {
     <div class="receipt-card">
         <div class="header-brand">
             <div>
-                <div class="receipt-title"><i class="fas fa-book-reader"></i> StudySpace Library</div>
-                <div style="font-size: 0.85rem; color: #64748b;">Competition Exam Self-Study Hall</div>
-                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">Phone: +91 98765 43210 &bull; GSTIN: 07AAAAA0000A1Z5</div>
+                <div class="receipt-title"><i class="<?php echo htmlspecialchars(LIBRARY_ICON_CLASS); ?>"></i> <?php echo htmlspecialchars(LIBRARY_NAME); ?></div>
+                <div style="font-size: 0.85rem; color: #64748b;"><?php echo htmlspecialchars(LIBRARY_TAGLINE); ?></div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">Phone: <?php echo htmlspecialchars(LIBRARY_PHONE); ?> &bull; GSTIN: 07AAAAA0000A1Z5</div>
             </div>
             <div style="text-align: right;">
                 <div class="paid-stamp">PAID</div>
@@ -208,7 +208,7 @@ if (isset($_SESSION['user_id'])) {
                 <p style="margin-top: 2px;">This is a computer generated digital receipt.</p>
             </div>
             <div style="text-align: center;">
-                <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; font-weight: 700; color: #475569;">StudySpace Admin</div>
+                <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; font-weight: 700; color: #475569;"><?php echo htmlspecialchars(LIBRARY_SHORT_NAME); ?> Admin</div>
                 <div style="font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #cbd5e1; padding-top: 4px; margin-top: 4px; width: 140px;">Authorized Signature</div>
             </div>
         </div>

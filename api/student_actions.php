@@ -22,7 +22,7 @@ if ($action === 'checkin') {
     $distance = calculate_geofence_distance($lat, $lng);
     if ($distance > GEOFENCE_RADIUS_METERS) {
         $dist_text = round($distance, 1) > 1000 ? round($distance / 1000, 2) . ' km' : round($distance, 1) . ' meters';
-        header("Location: ../student_dashboard.php?tab=tabAttendance&error=" . urlencode("Check-in Failed: You are $dist_text away from Keshav Library. Attendance is only permitted within 50 meters of the library campus."));
+        header("Location: ../student_dashboard.php?tab=tabAttendance&error=" . urlencode("Check-in Failed: You are $dist_text away from " . LIBRARY_SHORT_NAME . ". Attendance is only permitted within " . (int)GEOFENCE_RADIUS_METERS . " meters of the library campus."));
         exit();
     }
     
@@ -63,7 +63,7 @@ if ($action === 'checkout') {
     $distance = calculate_geofence_distance($lat, $lng);
     if ($distance > GEOFENCE_RADIUS_METERS) {
         $dist_text = round($distance, 1) > 1000 ? round($distance / 1000, 2) . ' km' : round($distance, 1) . ' meters';
-        header("Location: ../student_dashboard.php?tab=tabAttendance&error=" . urlencode("Check-out Warning: You are $dist_text away from Keshav Library campus. Check-out recorded."));
+        header("Location: ../student_dashboard.php?tab=tabAttendance&error=" . urlencode("Check-out Warning: You are $dist_text away from " . LIBRARY_SHORT_NAME . " campus. Check-out recorded."));
     }
 
     if (!empty($device_time)) {

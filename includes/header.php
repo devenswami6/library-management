@@ -25,7 +25,7 @@ if (is_logged_in()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($page_title) ? $page_title . ' - Study Hall Library' : 'Competition Study Hall & Library Management'; ?></title>
+    <title><?php echo isset($page_title) ? htmlspecialchars($page_title) . ' - ' . htmlspecialchars(LIBRARY_NAME) : htmlspecialchars(LIBRARY_NAME); ?></title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,7 +75,7 @@ if (is_logged_in()) {
                     document.body.innerHTML = '<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#0f172a; color:#f87171; font-family:sans-serif; text-align:center; padding:20px;">' +
                         '<h1 style="font-size:32px; margin-bottom:10px;">🔒 Security Lock Active</h1>' +
                         '<p style="font-size:18px; color:#cbd5e1;">Developer Tools / Inspect Element is strictly disabled on this portal.</p>' +
-                        '<p style="font-size:14px; color:#94a3b8; margin-top:15px;">Please close Developer Tools and refresh the page to continue using StudySpace.</p>' +
+                        '<p style="font-size:14px; color:#94a3b8; margin-top:15px;">Please close Developer Tools and refresh the page to continue using <?php echo htmlspecialchars(LIBRARY_SHORT_NAME); ?>.</p>' +
                         '</div>';
                 }
             }
@@ -98,8 +98,8 @@ if (is_logged_in()) {
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.php" class="brand-logo">
-                <i class="fas fa-book-reader"></i>
-                <span>StudySpace <small style="font-size:0.6rem; color:var(--accent-primary); display:block; line-height:1;">SELF STUDY HALL</small></span>
+                <i class="<?php echo htmlspecialchars(LIBRARY_ICON_CLASS); ?>"></i>
+                <span><?php echo htmlspecialchars(LIBRARY_SHORT_NAME); ?> <small style="font-size:0.6rem; color:var(--accent-primary); display:block; line-height:1;"><?php echo htmlspecialchars(LIBRARY_TAGLINE); ?></small></span>
             </a>
 
             <ul class="nav-links">

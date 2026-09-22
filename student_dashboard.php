@@ -425,7 +425,7 @@ $active_tab = $_GET['tab'] ?? 'tabSeatInfo';
                         <i class="fas fa-user-shield"></i>
                     </div>
                     <div>
-                        <strong style="font-size: 0.98rem; display: block;">Keshav Library Administration Desk</strong>
+                        <strong style="font-size: 0.98rem; display: block;"><?php echo htmlspecialchars(LIBRARY_NAME); ?> Administration Desk</strong>
                         <span style="font-size: 0.78rem; color: var(--text-muted);">Direct Live Messenger</span>
                     </div>
                 </div>

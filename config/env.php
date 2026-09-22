@@ -1,5 +1,6 @@
 <?php
 // config/env.php - Centralized Environment Configuration
+require_once __DIR__ . '/tenant_config.php';
 
 if (!defined('APP_ENV')) {
     define('APP_ENV', getenv('APP_ENV') ?: 'production');

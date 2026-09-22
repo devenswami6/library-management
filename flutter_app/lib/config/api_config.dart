@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'tenant_config.dart';
 
 class ApiConfig {
-  // Render.com Live 24/7 HTTPS Server URL:
-  static String baseUrl = 'https://library-management-hmwx.onrender.com';
+  // Dynamic API Base URL based on active tenant flavor
+  static String get baseUrl => TenantConfig.current.apiBaseUrl;
 
   static String get jsonAuth => '$baseUrl/api/json_auth.php';
   static String get jsonStudent => '$baseUrl/api/json_student_actions.php';
@@ -11,8 +12,8 @@ class ApiConfig {
 }
 
 class AppColors {
-  // Demo Theme Royal Blue / Deep Indigo Palette (#1D4ED8)
-  static const Color primaryIndigo = Color(0xFF1D4ED8); // Royal Blue Primary
+  static const Color primaryIndigo = Color(0xFF1D4ED8); // Default Royal Blue Primary
+  static Color get primaryTenant => TenantConfig.current.primaryColor; // Dynamic Tenant Primary Color
   static const Color primaryBlue = Color(0xFF1E40AF);   // Dark Royal Blue Header
   static const Color accentCyan = Color(0xFF06B6D4);    // Cyan Metric Accent
   static const Color accentViolet = Color(0xFF3B82F6);  // Bright Blue Accent

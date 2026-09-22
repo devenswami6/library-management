@@ -164,7 +164,7 @@ try {
         $distance = calculate_geofence_distance($lat, $lng);
         if ($distance > GEOFENCE_RADIUS_METERS) {
             $dist_text = round($distance, 1) > 1000 ? round($distance / 1000, 2) . ' km' : round($distance, 1) . ' meters';
-            echo json_encode(['success' => false, 'message' => "Check-in Failed: You are $dist_text away from Keshav Library. Check-in is only permitted within 50 meters of the library."]);
+            echo json_encode(['success' => false, 'message' => "Check-in Failed: You are $dist_text away from " . LIBRARY_SHORT_NAME . ". Check-in is only permitted within " . (int)GEOFENCE_RADIUS_METERS . " meters of the library."]);
             exit();
         }
 
@@ -200,7 +200,7 @@ try {
             $distance = calculate_geofence_distance($lat, $lng);
             if ($distance > GEOFENCE_RADIUS_METERS) {
                 $dist_text = round($distance, 1) > 1000 ? round($distance / 1000, 2) . ' km' : round($distance, 1) . ' meters';
-                echo json_encode(['success' => false, 'message' => "Check-out Warning: You are $dist_text away from Keshav Library. Auto Check-out processing..."]);
+                echo json_encode(['success' => false, 'message' => "Check-out Warning: You are $dist_text away from " . LIBRARY_SHORT_NAME . ". Auto Check-out processing..."]);
             }
         }
 

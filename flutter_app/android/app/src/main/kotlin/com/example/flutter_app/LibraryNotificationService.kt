@@ -194,9 +194,9 @@ class LibraryNotificationService : Service() {
                 loadShownIdsFromPrefs()
                 val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val userId = prefs.getInt(KEY_USER_ID, 0)
-                val baseUrl = prefs.getString(KEY_BASE_URL, "https://library-management-hmwx.onrender.com") ?: "https://library-management-hmwx.onrender.com"
+                val baseUrl = prefs.getString(KEY_BASE_URL, "") ?: ""
 
-                if (userId <= 0) return@execute
+                if (userId <= 0 || baseUrl.isBlank()) return@execute
 
                 val urlString = "$baseUrl/api/json_student_actions.php?action=get_dashboard&user_id=$userId"
                 val url = URL(urlString)
@@ -318,7 +318,7 @@ class LibraryNotificationService : Service() {
                 if (distanceMeters > 50.0f) {
                     lastAutoCheckoutTime = System.currentTimeMillis()
                     val distStr = if (distanceMeters > 1000) String.format("%.2f km", distanceMeters / 1000) else String.format("%.1f meters", distanceMeters)
-                    performAutoCheckout(baseUrl, userId, "You moved $distStr away from Keshav Library (50m limit).")
+                    performAutoCheckout(baseUrl, userId, "You moved $distStr away from the library (geofence limit).")
                 }
             }
         } catch (e: Exception) {

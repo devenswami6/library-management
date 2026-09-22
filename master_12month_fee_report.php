@@ -182,7 +182,7 @@ if ($format === 'csv') {
     <div class="report-card">
         <div class="header-bar">
             <div>
-                <div class="title"><i class="fas fa-book-reader"></i> StudySpace Competition Library</div>
+                <div class="title"><i class="<?php echo htmlspecialchars(LIBRARY_ICON_CLASS); ?>"></i> <?php echo htmlspecialchars(LIBRARY_NAME); ?></div>
                 <div class="subtitle">12-Month Master Membership Fee Ledger & Annual Financial Report</div>
             </div>
             <div style="text-align: right;">
@@ -255,7 +255,7 @@ if ($format === 'csv') {
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #e2e8f0; padding-top: 14px; font-size: 0.8rem; color: #64748b;">
-            <div>Master 12-Month Consolidated Ledger &bull; StudySpace Self Study Hall</div>
+            <div>Master 12-Month Consolidated Ledger &bull; <?php echo htmlspecialchars(LIBRARY_NAME); ?></div>
             <div><strong>Page 1 of 1</strong></div>
         </div>
     </div>

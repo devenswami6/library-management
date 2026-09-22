@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'config/api_config.dart';
+import 'config/tenant_config.dart';
 import 'providers/auth_provider.dart';
 import 'providers/seat_provider.dart';
 import 'providers/attendance_provider.dart';
@@ -34,6 +35,8 @@ import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Ensure tenant config is initialized to default (studyspace) if running directly from main.dart
+  TenantConfig.initialize(TenantConfig.current.flavor);
   await NotificationService().init();
 
   try {

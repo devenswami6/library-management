@@ -229,7 +229,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                             onChanged: (_) => setState(() {}),
                             decoration: const InputDecoration(
                               labelText: 'Library / App Name *',
-                              hintText: 'e.g. Keshav Self-Study Space',
+                              hintText: 'e.g. Self-Study Space',
                               prefixIcon: Icon(Icons.edit_note_rounded, color: AppColors.primaryIndigo),
                               border: OutlineInputBorder(),
                             ),

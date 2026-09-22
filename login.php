@@ -34,7 +34,7 @@ $shifts = $pdo->query("SELECT * FROM shifts WHERE is_active = 1")->fetchAll();
 
         <!-- LOGIN TAB -->
         <div id="loginTab" class="tab-pane <?php echo $active_tab === 'login' ? 'active' : ''; ?>">
-            <h3 style="text-align: center; margin-bottom: 20px;">Welcome Back to StudySpace</h3>
+            <h3 style="text-align: center; margin-bottom: 20px;">Welcome Back to <?php echo htmlspecialchars(LIBRARY_SHORT_NAME); ?></h3>
             
             <form action="api/auth.php" method="POST">
                 <input type="hidden" name="action" value="login">
@@ -57,7 +57,7 @@ $shifts = $pdo->query("SELECT * FROM shifts WHERE is_active = 1")->fetchAll();
 
         <!-- REGISTER TAB -->
         <div id="registerTab" class="tab-pane <?php echo $active_tab === 'register' ? 'active' : ''; ?>">
-            <h3 style="text-align: center; margin-bottom: 10px;">Join StudySpace Study Hall</h3>
+            <h3 style="text-align: center; margin-bottom: 10px;">Join <?php echo htmlspecialchars(LIBRARY_SHORT_NAME); ?></h3>
             <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
                 Submit your registration request. Admin will review and allot your study desk seat.
             </p>

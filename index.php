@@ -17,7 +17,7 @@ $vacant_seats = max(0, $total_seats - $occupied_seats);
 <div class="card" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.1) 100%); border: 1px solid var(--border-color); padding: 40px 30px; margin-bottom: 24px;">
     <div style="max-width: 750px;">
         <span class="badge badge-info" style="margin-bottom: 12px;"><i class="fas fa-bullhorn"></i> Exam Preparation Study Hall Open 24x7</span>
-        <h1 style="font-size: 2.4rem; line-height: 1.25; margin-bottom: 14px;">Focus, Prepare & Succeed at StudySpace Library</h1>
+        <h1 style="font-size: 2.4rem; line-height: 1.25; margin-bottom: 14px;">Focus, Prepare & Succeed at <?php echo htmlspecialchars(LIBRARY_SHORT_NAME); ?></h1>
         <p style="font-size: 1.05rem; color: var(--text-muted); margin-bottom: 20px;">
             A premier self-study hall designed exclusively for competitive exam aspirants (UPSC, SSC, Banking, NEET, JEE, GATE). Reserve your personal ergonomic desk, preferred shift timing, and uninterrupted study environment today.
         </p>

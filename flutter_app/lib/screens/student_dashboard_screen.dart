@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import '../config/api_config.dart';
+import '../config/tenant_config.dart';
 import '../models/user_model.dart';
 import '../models/attendance_model.dart';
 import '../providers/auth_provider.dart';
@@ -100,16 +101,16 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
         final distance = Geolocator.distanceBetween(
           position.latitude,
           position.longitude,
-          28.0087395,
-          73.2924508,
+          TenantConfig.current.libraryLat,
+          TenantConfig.current.libraryLng,
         );
 
-        if (distance > 50.0) {
+        if (distance > TenantConfig.current.geofenceRadiusMeters) {
           final success = await attProvider.checkOut(user.id, isAuto: true);
           if (success && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Auto Checked-Out: You moved ${distance.toStringAsFixed(1)}m away from Keshav Library (50m limit).'),
+                content: Text('Auto Checked-Out: You moved ${distance.toStringAsFixed(1)}m away from ${TenantConfig.current.libraryShortName} (${TenantConfig.current.geofenceRadiusMeters.toInt()}m limit).'),
                 backgroundColor: Colors.redAccent,
                 duration: const Duration(seconds: 6),
               ),
@@ -691,7 +692,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
                         children: [
                           const Icon(Icons.auto_stories_rounded, color: AppColors.primaryIndigo, size: 28),
                           const SizedBox(width: 14),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -705,7 +706,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  'Keep studying consistently at Keshav Self-Study Hall!',
+                                  'Keep studying consistently at ${TenantConfig.current.libraryShortName}!',
                                   style: TextStyle(fontSize: 11, color: Colors.black54),
                                 ),
                               ],
@@ -715,10 +716,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Ti
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Center(
+                    Center(
                       child: Text(
-                        'Powered by Ramxonwebwork',
-                        style: TextStyle(
+                        'Powered by ${TenantConfig.current.footerCredit}',
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryIndigo,

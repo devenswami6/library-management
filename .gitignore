@@ -7,4 +7,8 @@ library.db
 *.db-wal
 *.db-shm
 *.pre_recovery_backup_*
+data/*.db
+data/library.db
+.env
 scratch/
+

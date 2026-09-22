@@ -22,13 +22,13 @@ class MainActivity: FlutterActivity() {
             when (call.method) {
                 "startService" -> {
                     val userId = call.argument<Int>("userId") ?: 0
-                    val baseUrl = call.argument<String>("baseUrl") ?: "https://library-management-hmwx.onrender.com"
-                    if (userId > 0) {
+                    val baseUrl = call.argument<String>("baseUrl") ?: ""
+                    if (userId > 0 && baseUrl.isNotBlank()) {
                         LibraryNotificationService.startService(context, userId, baseUrl)
                         requestPostNotificationsPermission()
                         result.success(true)
                     } else {
-                        result.success(false)
+                        result.error("INVALID_CONFIG", "Missing userId or baseUrl in tenant configuration", null)
                     }
                 }
                 "stopService" -> {
