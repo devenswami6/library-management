@@ -8,8 +8,27 @@ require_once __DIR__ . '/../config/auth.php';
 
 header('Content-Type: application/json');
 
-// Authenticated Admin authorization guard: Block unauthenticated or non-admin requests
-if (!is_admin()) {
+// Action extraction: Only allow action = force_one_time_recovery
+$action = $_GET['action'] ?? ($_POST['action'] ?? '');
+
+// Authorization Check:
+// EITHER: 1) Admin session (is_admin() === true)
+// OR:     2) Valid Render environment token supplied ONLY in X-Recovery-Token HTTP header
+$is_authorized = false;
+if (function_exists('is_admin') && is_admin()) {
+    $is_authorized = true;
+}
+
+$env_token = getenv('RECOVERY_ADMIN_TOKEN');
+$header_token = $_SERVER['HTTP_X_RECOVERY_TOKEN'] ?? '';
+
+if (!$is_authorized && !empty($env_token) && !empty($header_token)) {
+    if (hash_equals($env_token, $header_token) && $action === 'force_one_time_recovery') {
+        $is_authorized = true;
+    }
+}
+
+if (!$is_authorized) {
     http_response_code(403);
     echo json_encode([
         'success' => false,
@@ -18,7 +37,55 @@ if (!is_admin()) {
     exit();
 }
 
-$action = $_GET['action'] ?? ($_POST['action'] ?? '');
+// Action check: Token or session MUST target force_one_time_recovery
+if ($action !== 'force_one_time_recovery') {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid recovery action specified.'
+    ]);
+    exit();
+}
+
+// Concurrency Lock File on Persistent Storage Disk
+$recovery_lock_file = dirname(DB_PATH) . '/.production_recovery.lock';
+$fp_lock = @fopen($recovery_lock_file, 'c+');
+
+if (!$fp_lock || !@flock($fp_lock, LOCK_EX | LOCK_NB)) {
+    if ($fp_lock && is_resource($fp_lock)) @fclose($fp_lock);
+    http_response_code(423);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Another recovery process is currently in progress on this server.',
+        'code' => 423
+    ]);
+    exit();
+}
+
+// Cleanup helper function to release process lock on exit
+function release_recovery_lock($fp) {
+    if ($fp && is_resource($fp)) {
+        @flock($fp, LOCK_UN);
+        @fclose($fp);
+    }
+}
+
+// Register shutdown function to guarantee lock release on unexpected exit/die
+register_shutdown_function('release_recovery_lock', $fp_lock);
+
+// One-Time Marker Enforcement on Persistent Storage Disk
+$recovery_marker_file = dirname(DB_PATH) . '/.production_recovery_completed';
+
+if (file_exists($recovery_marker_file)) {
+    http_response_code(409);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Production database recovery has already been completed on this server. Subsequent recovery attempts are permanently locked out.',
+        'code' => 409
+    ]);
+    release_recovery_lock($fp_lock);
+    exit();
+}
 
 try {
     $db_file = DB_PATH;
@@ -29,18 +96,20 @@ try {
         $user_count = 0;
     }
     
-    // Safety check: allow one-time restoration only when target database contains <= 1 admin user unless explicitly forced by authenticated admin
+    // Safety check: allow one-time restoration only when target database contains <= 1 user unless forced by authenticated action
     if ($user_count > 1 && $action !== 'force_one_time_recovery') {
         echo json_encode([
             'success' => false,
             'message' => "Target database already contains $user_count users. One-time recovery aborted to prevent overwriting existing live data."
         ]);
+        release_recovery_lock($fp_lock);
         exit();
     }
 
     $snapshot_file = __DIR__ . '/../config/db_snapshot.json';
     if (!file_exists($snapshot_file)) {
         echo json_encode(['success' => false, 'message' => 'Snapshot file config/db_snapshot.json not found!']);
+        release_recovery_lock($fp_lock);
         exit();
     }
 
@@ -48,6 +117,7 @@ try {
     $data = json_decode($raw, true);
     if (empty($data) || empty($data['users'])) {
         echo json_encode(['success' => false, 'message' => 'Invalid or empty snapshot file!']);
+        release_recovery_lock($fp_lock);
         exit();
     }
 
@@ -127,6 +197,35 @@ try {
         WHERE a.user_id = 6 AND a.status = 'active'
     ")->fetch();
 
+    // AFTER AND ONLY AFTER SUCCESSFUL RESTORATION & VALIDATION:
+    // Create the persistent recovery-completed marker on disk using atomic temp file + rename
+    $marker_data = json_encode([
+        'completed_at' => date('Y-m-d H:i:s'),
+        'users_restored' => $counts['users'] ?? 0,
+        'system_identity' => PRODUCTION_IDENTITY_MARKER
+    ], JSON_PRETTY_PRINT);
+
+    $tmp_marker = $recovery_marker_file . '.tmp.' . getmypid() . '_' . microtime(true);
+    $write_bytes = file_put_contents($tmp_marker, $marker_data, LOCK_EX);
+    $rename_success = false;
+
+    if ($write_bytes !== false && $write_bytes > 0) {
+        $rename_success = @rename($tmp_marker, $recovery_marker_file);
+    }
+
+    if (!$rename_success || !file_exists($recovery_marker_file)) {
+        @unlink($tmp_marker);
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Recovery completed database restoration but failed to persist the one-time completion marker to disk. Replay protection could not be verified.'
+        ], JSON_PRETTY_PRINT);
+        release_recovery_lock($fp_lock);
+        exit();
+    }
+
+    release_recovery_lock($fp_lock);
+
     echo json_encode([
         'success' => true,
         'message' => 'One-time production database recovery completed successfully!',
@@ -136,6 +235,7 @@ try {
     exit();
 
 } catch (Exception $e) {
+    release_recovery_lock($fp_lock);
     echo json_encode(['success' => false, 'message' => 'One-time recovery failed: ' . $e->getMessage()]);
     exit();
 }
