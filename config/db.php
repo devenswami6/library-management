@@ -17,6 +17,15 @@ if (defined('APP_ENV') && APP_ENV === 'production') {
             'db_path' => $db_file
         ]));
     }
+    if (!file_exists($db_file)) {
+        http_response_code(503);
+        header('Content-Type: application/json');
+        die(json_encode([
+            'success' => false,
+            'error' => 'CRITICAL PRODUCTION DATABASE ERROR: Production database file ' . $db_file . ' does not exist. Automatic database creation disabled in production.',
+            'db_path' => $db_file
+        ]));
+    }
 } else {
     if (!file_exists($db_dir)) {
         @mkdir($db_dir, 0777, true);
@@ -472,9 +481,21 @@ try {
     $is_fresh_db = true;
 }
 
-// Run initializer
-init_database($pdo);
-
-// Run non-destructive schema migrations
-run_migrations($pdo);
+if (defined('APP_ENV') && APP_ENV === 'production') {
+    if ($is_fresh_db) {
+        http_response_code(503);
+        header('Content-Type: application/json');
+        die(json_encode([
+            'success' => false,
+            'error' => 'CRITICAL PRODUCTION DATABASE ERROR: Production database ' . $db_file . ' is uninitialized or empty. Silent fresh database seeding is disabled in production to protect data.',
+            'db_path' => $db_file
+        ]));
+    }
+    // In production with existing data, run non-destructive schema migrations only
+    run_migrations($pdo);
+} else {
+    // In development mode, allow fresh initialization and non-destructive migrations
+    init_database($pdo);
+    run_migrations($pdo);
+}
 ?>
