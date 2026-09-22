@@ -72,6 +72,7 @@ try {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['name'];
             $_SESSION['user_role'] = $user['role'];
+            session_write_close();
 
             // Clean up password hash before sending
             unset($user['password']);
