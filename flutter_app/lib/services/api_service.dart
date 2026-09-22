@@ -63,6 +63,7 @@ class ApiService {
     String? emergencyContact,
     String? idProofType,
     String? idProofNo,
+    String? preparationFor,
   }) async {
     try {
       final response = await http.post(
@@ -77,6 +78,7 @@ class ApiService {
           'emergency_contact': emergencyContact ?? '',
           'id_proof_type': idProofType ?? 'Aadhaar Card',
           'id_proof_no': idProofNo ?? '',
+          'preparation_for': preparationFor ?? '',
         },
       );
       return jsonDecode(response.body);
@@ -701,6 +703,54 @@ class ApiService {
       }
     } catch (e) {
       return {'success': false, 'message': 'Failed to update app settings: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getSeatsWithStatus({required int shiftId, required int studentId}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.jsonAdmin}?action=get_seats_with_status&shift_id=$shiftId&student_id=$studentId'),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to load seats for shift: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateStudent({
+    required int studentId,
+    required String name,
+    required String phone,
+    required String email,
+    String? fatherName,
+    String? address,
+    String? emergencyContact,
+    String? preparationFor,
+    int? shiftId,
+    int? seatId,
+  }) async {
+    try {
+      final body = {
+        'action': 'update_student',
+        'student_id': studentId.toString(),
+        'name': name,
+        'phone': phone,
+        'email': email,
+        'father_name': fatherName ?? '',
+        'address': address ?? '',
+        'emergency_contact': emergencyContact ?? '',
+        'preparation_for': preparationFor ?? '',
+      };
+      if (shiftId != null && shiftId > 0) body['shift_id'] = shiftId.toString();
+      if (seatId != null && seatId > 0) body['seat_id'] = seatId.toString();
+
+      final response = await http.post(
+        Uri.parse(ApiConfig.jsonAdmin),
+        body: body,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to update student profile: $e'};
     }
   }
 }

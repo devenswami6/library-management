@@ -2,22 +2,38 @@
 // api/one_time_production_restore.php
 // Explicit, administrative one-time recovery script to restore production data from repository snapshot into live database.
 
+define('ALLOW_RECOVERY_MODE', true);
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/auth.php';
 
 header('Content-Type: application/json');
+
+// Authenticated Admin authorization guard: Block unauthenticated or non-admin requests
+if (!is_admin()) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unauthorized access. Admin privileges required.'
+    ]);
+    exit();
+}
 
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 
 try {
     $db_file = DB_PATH;
-    $user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    $user_count = 0;
+    try {
+        $user_count = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    } catch (Exception $e) {
+        $user_count = 0;
+    }
     
-    // Safety check: allow one-time restoration only when target database contains <= 1 admin user
+    // Safety check: allow one-time restoration only when target database contains <= 1 admin user unless explicitly forced by authenticated admin
     if ($user_count > 1 && $action !== 'force_one_time_recovery') {
         echo json_encode([
             'success' => false,
-            'message' => "Target database already contains $user_count users. One-time recovery aborted to prevent overwriting existing live data.",
-            'db_path' => $db_file
+            'message' => "Target database already contains $user_count users. One-time recovery aborted to prevent overwriting existing live data."
         ]);
         exit();
     }
@@ -42,6 +58,9 @@ try {
     }
 
     $pdo->exec("PRAGMA foreign_keys = OFF;");
+    // Ensure base schema exists before restoring snapshot records
+    init_database($pdo);
+
     $tables = ['users', 'shifts', 'seats', 'allocations', 'fee_payments', 'attendance', 'complaints', 'notifications', 'chat_messages', 'system_settings'];
     
     foreach ($tables as $table) {
@@ -81,6 +100,11 @@ try {
 
     $pdo->exec("PRAGMA foreign_keys = ON;");
 
+    // Ensure production system identity marker is explicitly written
+    $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (setting_key TEXT PRIMARY KEY, setting_value TEXT)");
+    $stmt_sys = $pdo->prepare("INSERT OR REPLACE INTO system_settings (setting_key, setting_value) VALUES ('system_identity', ?)");
+    $stmt_sys->execute([PRODUCTION_IDENTITY_MARKER]);
+
     // Run schema migrations to ensure unique indexes are active
     run_migrations($pdo);
 
@@ -106,8 +130,6 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'One-time production database recovery completed successfully!',
-        'db_path' => $db_file,
-        'backup_created' => $backup_file,
         'recovered_counts' => $counts,
         'deven_allocation' => $stmt_deven ?: null
     ], JSON_PRETTY_PRINT);

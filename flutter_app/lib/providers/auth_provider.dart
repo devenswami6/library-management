@@ -153,6 +153,7 @@ class AuthProvider extends ChangeNotifier {
     String? emergencyContact,
     String? idProofType,
     String? idProofNo,
+    String? preparationFor,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -167,6 +168,7 @@ class AuthProvider extends ChangeNotifier {
       emergencyContact: emergencyContact,
       idProofType: idProofType,
       idProofNo: idProofNo,
+      preparationFor: preparationFor,
     );
 
     _isLoading = false;

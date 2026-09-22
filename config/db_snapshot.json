@@ -1036,6 +1036,10 @@
         {
             "setting_key": "app_tagline",
             "setting_value": "Quiet Environment & High-Speed Wi-Fi"
+        },
+        {
+            "setting_key": "system_identity",
+            "setting_value": "PRODUCTION_STUDYSPACE_AUTHORITATIVE"
         }
     ]
 }

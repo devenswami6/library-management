@@ -946,9 +946,12 @@ try {
         try {
             $pdo->exec("ALTER TABLE users ADD COLUMN address TEXT");
         } catch (Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE users ADD COLUMN preparation_for TEXT");
+        } catch (Exception $e) {}
 
         $stmt = $pdo->query("
-            SELECT u.id, u.name, u.email, u.phone, u.father_name, u.address, u.emergency_contact,
+            SELECT u.id, u.name, u.email, u.phone, u.father_name, u.address, u.emergency_contact, u.preparation_for,
                    u.id_proof_type, u.id_proof_no, u.status, u.registered_device_id, u.created_at,
                    s.seat_number, s.row_label, sh.name as shift_name, sh.fee_amount, a.start_date
             FROM users u
@@ -962,6 +965,193 @@ try {
 
         echo json_encode(['success' => true, 'students' => $students]);
         exit();
+
+    } elseif ($action === 'get_seats_with_status') {
+        $shift_id = (int)($_POST['shift_id'] ?? ($_GET['shift_id'] ?? 1));
+        $student_id = (int)($_POST['student_id'] ?? ($_GET['student_id'] ?? 0));
+
+        $seats = $pdo->query("SELECT id, seat_number, row_label FROM seats WHERE is_active = 1 ORDER BY row_label ASC, seat_number ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+        $alloc_stmt = $pdo->prepare("
+            SELECT a.seat_id, a.user_id, u.name as occupant_name
+            FROM allocations a
+            JOIN users u ON a.user_id = u.id
+            WHERE a.shift_id = ? AND a.status = 'active'
+        ");
+        $alloc_stmt->execute([$shift_id]);
+        $allocs = $alloc_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $alloc_map = [];
+        foreach ($allocs as $al) {
+            $alloc_map[$al['seat_id']] = $al;
+        }
+
+        $result_seats = [];
+        foreach ($seats as $seat) {
+            $s_id = (int)$seat['id'];
+            $status = 'AVAILABLE';
+            $occupant = null;
+
+            if (isset($alloc_map[$s_id])) {
+                $al = $alloc_map[$s_id];
+                if ((int)$al['user_id'] === $student_id) {
+                    $status = 'CURRENT';
+                    $occupant = $al['occupant_name'];
+                } else {
+                    $status = 'OCCUPIED';
+                    $occupant = $al['occupant_name'];
+                }
+            }
+
+            $result_seats[] = [
+                'id' => $s_id,
+                'seat_number' => $seat['seat_number'],
+                'row_label' => $seat['row_label'],
+                'status' => $status,
+                'occupant_name' => $occupant
+            ];
+        }
+
+        echo json_encode(['success' => true, 'seats' => $result_seats]);
+        exit();
+
+    } elseif ($action === 'update_student') {
+        $student_id = (int)($_POST['student_id'] ?? ($_GET['student_id'] ?? 0));
+        $name = trim($_POST['name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $father_name = trim($_POST['father_name'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $emergency_contact = trim($_POST['emergency_contact'] ?? '');
+        $preparation_for = trim($_POST['preparation_for'] ?? '');
+        $new_seat_id = isset($_POST['seat_id']) ? (int)$_POST['seat_id'] : 0;
+        $target_shift_id = isset($_POST['shift_id']) ? (int)$_POST['shift_id'] : 0;
+
+        if ($student_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid student ID.']);
+            exit();
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Validate student exists
+            $stmt_stu = $pdo->prepare("SELECT id, name FROM users WHERE id = ? AND role = 'student'");
+            $stmt_stu->execute([$student_id]);
+            $stu = $stmt_stu->fetch();
+            if (!$stu) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Student record not found.']);
+                exit();
+            }
+
+            $old_seat_no = null;
+            $new_seat_no = null;
+
+            // Fetch student's current active allocation
+            $stmt_curr = $pdo->prepare("
+                SELECT a.id as alloc_id, a.seat_id, a.shift_id, s.seat_number
+                FROM allocations a
+                JOIN seats s ON a.seat_id = s.id
+                WHERE a.user_id = ? AND a.status = 'active'
+                ORDER BY a.id DESC LIMIT 1
+            ");
+            $stmt_curr->execute([$student_id]);
+            $curr_alloc = $stmt_curr->fetch();
+            if ($curr_alloc) {
+                $old_seat_no = $curr_alloc['seat_number'];
+            }
+
+            // If target_shift_id not provided, use current shift_id or default 1
+            if ($target_shift_id <= 0) {
+                $target_shift_id = $curr_alloc ? (int)$curr_alloc['shift_id'] : 1;
+            }
+
+            // 2. If seat reassignment requested
+            if ($new_seat_id > 0) {
+                // Fetch new seat details
+                $stmt_seat = $pdo->prepare("SELECT id, seat_number FROM seats WHERE id = ? AND is_active = 1");
+                $stmt_seat->execute([$new_seat_id]);
+                $seat_obj = $stmt_seat->fetch();
+                if (!$seat_obj) {
+                    $pdo->rollBack();
+                    echo json_encode(['success' => false, 'message' => 'Selected seat desk is invalid or inactive.']);
+                    exit();
+                }
+                $new_seat_no = $seat_obj['seat_number'];
+
+                // Check if seat change or shift change is required
+                $need_reassign = true;
+                if ($curr_alloc && (int)$curr_alloc['seat_id'] === $new_seat_id && (int)$curr_alloc['shift_id'] === $target_shift_id) {
+                    $need_reassign = false;
+                }
+
+                if ($need_reassign) {
+                    // 3. Double-allocation prevention check
+                    $stmt_check = $pdo->prepare("
+                        SELECT a.id, u.name as occupant_name, s.seat_number, sh.name as shift_name
+                        FROM allocations a
+                        JOIN users u ON a.user_id = u.id
+                        JOIN seats s ON a.seat_id = s.id
+                        JOIN shifts sh ON a.shift_id = sh.id
+                        WHERE a.seat_id = ? AND a.shift_id = ? AND a.status = 'active' AND a.user_id != ?
+                    ");
+                    $stmt_check->execute([$new_seat_id, $target_shift_id, $student_id]);
+                    $occupied = $stmt_check->fetch();
+                    if ($occupied) {
+                        $pdo->rollBack();
+                        echo json_encode([
+                            'success' => false,
+                            'message' => "Seat {$occupied['seat_number']} is already assigned to {$occupied['occupant_name']} in {$occupied['shift_name']}."
+                        ]);
+                        exit();
+                    }
+
+                    // 4. Release/End previous active allocations
+                    $pdo->prepare("UPDATE allocations SET status = 'cancelled' WHERE user_id = ? AND status = 'active'")->execute([$student_id]);
+                    $pdo->prepare("DELETE FROM allocations WHERE user_id = ? AND status = 'pending'")->execute([$student_id]);
+
+                    // 5. Create new active allocation
+                    $stmt_ins = $pdo->prepare("
+                        INSERT INTO allocations (user_id, seat_id, shift_id, start_date, status, notes)
+                        VALUES (?, ?, ?, DATE('now'), 'active', 'Seat reassigned by Admin')
+                    ");
+                    $stmt_ins->execute([$student_id, $new_seat_id, $target_shift_id]);
+
+                    // Insert notification for student
+                    try {
+                        $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, 'Seat Assigned 🪑', ?)")
+                            ->execute([$student_id, "Admin updated your assigned seat to Desk $new_seat_no."]);
+                    } catch (Exception $e) {}
+                }
+            }
+
+            // 6. Update student profile in users table
+            $stmt_upd = $pdo->prepare("
+                UPDATE users
+                SET name = ?, phone = ?, email = ?, father_name = ?, address = ?, emergency_contact = ?, preparation_for = ?, status = 'approved'
+                WHERE id = ? AND role = 'student'
+            ");
+            $stmt_upd->execute([$name, $phone, $email, $father_name, $address, $emergency_contact, $preparation_for, $student_id]);
+
+            $pdo->commit();
+
+            echo json_encode([
+                'success' => true,
+                'message' => $new_seat_no ? "Student profile and seat ($new_seat_no) updated successfully." : 'Student profile updated successfully.',
+                'student_id' => $student_id,
+                'old_seat' => $old_seat_no,
+                'new_seat' => $new_seat_no ?? $old_seat_no
+            ]);
+            exit();
+
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['success' => false, 'message' => 'Transaction failed: ' . $e->getMessage()]);
+            exit();
+        }
 
     } elseif ($action === 'delete_student' || $action === 'soft_delete_student') {
         $student_id = (int)($_POST['student_id'] ?? ($_GET['student_id'] ?? 0));
@@ -1002,7 +1192,7 @@ try {
         } catch (Exception $e) {}
 
         $stmt = $pdo->query("
-            SELECT u.id, u.name, u.email, u.phone, u.father_name, u.address, u.emergency_contact,
+            SELECT u.id, u.name, u.email, u.phone, u.father_name, u.address, u.emergency_contact, u.preparation_for,
                    u.id_proof_type, u.id_proof_no, u.status, u.deleted_at, u.registered_device_id, u.created_at,
                    MAX(0, CAST(30 - (julianday('now') - julianday(u.deleted_at)) AS INTEGER)) as days_left
             FROM users u

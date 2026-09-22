@@ -273,6 +273,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
 
               _buildDetailRow(Icons.person_rounded, 'Full Name', s['name'] ?? 'N/A'),
               _buildDetailRow(Icons.family_restroom_rounded, 'Father Name', s['father_name'] ?? 'N/A'),
+              _buildDetailRow(Icons.school_rounded, 'Preparation For', (s['preparation_for'] != null && s['preparation_for'].toString().trim().isNotEmpty) ? s['preparation_for'] : 'Not specified'),
               _buildDetailRow(Icons.phone_android_rounded, 'Phone Number', s['phone'] ?? 'N/A'),
               _buildDetailRow(Icons.email_rounded, 'Email Address', s['email'] ?? 'N/A'),
               _buildDetailRow(Icons.event_seat_rounded, 'Assigned Desk', s['seat_number'] != null ? 'Desk ${s['seat_number']}' : 'Unassigned'),
@@ -289,16 +290,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.close_rounded),
-                      label: const Text('Close'),
+                      icon: const Icon(Icons.edit_rounded, color: AppColors.primaryIndigo),
+                      label: const Text('Edit Student', style: TextStyle(color: AppColors.primaryIndigo)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: AppColors.primaryIndigo),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: () => Navigator.pop(ctx),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _showEditStudentModal(s);
+                      },
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white),
@@ -318,6 +323,277 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showEditStudentModal(Map<String, dynamic> s) async {
+    final int studentId = s['id'] is int ? s['id'] : int.tryParse(s['id'].toString()) ?? 0;
+    final String initialStudentName = s['name'] ?? 'Student';
+    final nameController = TextEditingController(text: s['name'] ?? '');
+    final phoneController = TextEditingController(text: s['phone'] ?? '');
+    final emailController = TextEditingController(text: s['email'] ?? '');
+    final fatherController = TextEditingController(text: s['father_name'] ?? '');
+    final addressController = TextEditingController(text: s['address'] ?? '');
+    final emergencyController = TextEditingController(text: s['emergency_contact'] ?? '');
+
+    final existingPrep = (s['preparation_for'] ?? '').toString().trim();
+    final List<String> standardOptions = ['RAS', 'REET', 'SSC', 'UPSC', 'CET', 'Banking', 'Railway', 'NEET', 'JEE'];
+    
+    String selectedPrepOpt;
+    final customPrepController = TextEditingController();
+
+    if (existingPrep.isEmpty) {
+      selectedPrepOpt = 'RAS';
+    } else if (standardOptions.contains(existingPrep)) {
+      selectedPrepOpt = existingPrep;
+    } else {
+      selectedPrepOpt = 'Other';
+      customPrepController.text = existingPrep;
+    }
+
+    final initialSeatNo = s['seat_number'] != null ? s['seat_number'].toString() : 'Unassigned';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        List<dynamic> shifts = [];
+        List<dynamic> seatOptions = [];
+        bool isLoadingSeats = true;
+        int selectedShiftId = 1;
+        int? selectedSeatId;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // Load shifts and seats on first render of modal
+            if (shifts.isEmpty && isLoadingSeats) {
+              ApiService.getShifts().then((fetchedShifts) {
+                if (ctx.mounted) {
+                  setModalState(() {
+                    shifts = fetchedShifts;
+                    if (shifts.isNotEmpty) {
+                      selectedShiftId = shifts.first['id'];
+                    }
+                  });
+                  // Load seats for current student & selected shift
+                  ApiService.getSeatsWithStatus(shiftId: selectedShiftId, studentId: studentId).then((seatRes) {
+                    if (ctx.mounted) {
+                      setModalState(() {
+                        seatOptions = seatRes['seats'] ?? [];
+                        isLoadingSeats = false;
+                        // Pre-select student's current seat
+                        final currentSeat = seatOptions.firstWhere((st) => st['status'] == 'CURRENT', orElse: () => null);
+                        if (currentSeat != null) {
+                          selectedSeatId = currentSeat['id'];
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            void fetchSeatsForSelectedShift(int newShiftId) {
+              setModalState(() {
+                selectedShiftId = newShiftId;
+                isLoadingSeats = true;
+              });
+              ApiService.getSeatsWithStatus(shiftId: newShiftId, studentId: studentId).then((seatRes) {
+                if (ctx.mounted) {
+                  setModalState(() {
+                    seatOptions = seatRes['seats'] ?? [];
+                    isLoadingSeats = false;
+                    final currentSeat = seatOptions.firstWhere((st) => st['status'] == 'CURRENT', orElse: () => null);
+                    selectedSeatId = currentSeat != null ? currentSeat['id'] : (seatOptions.isNotEmpty ? seatOptions.first['id'] : null);
+                  });
+                }
+              });
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 20,
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Edit Student: $initialStudentName', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                    const Divider(),
+                    TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Full Name *', border: OutlineInputBorder())),
+                    const SizedBox(height: 10),
+                    TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number *', border: OutlineInputBorder())),
+                    const SizedBox(height: 10),
+                    TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email Address *', border: OutlineInputBorder())),
+                    const SizedBox(height: 10),
+                    TextField(controller: fatherController, decoration: const InputDecoration(labelText: 'Father Name', border: OutlineInputBorder())),
+                    const SizedBox(height: 10),
+                    TextField(controller: addressController, decoration: const InputDecoration(labelText: 'Home Address', border: OutlineInputBorder())),
+                    const SizedBox(height: 10),
+                    TextField(controller: emergencyController, decoration: const InputDecoration(labelText: 'Emergency Contact', border: OutlineInputBorder())),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: selectedPrepOpt,
+                      decoration: const InputDecoration(labelText: 'What are you preparing for?', border: OutlineInputBorder()),
+                      items: [...standardOptions, 'Other'].map((opt) => DropdownMenuItem(value: opt, child: Text(opt))).toList(),
+                      onChanged: (val) {
+                        if (val != null) setModalState(() => selectedPrepOpt = val);
+                      },
+                    ),
+                    if (selectedPrepOpt == 'Other') ...[
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: customPrepController,
+                        decoration: const InputDecoration(labelText: 'Please specify course/exam', border: OutlineInputBorder()),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    const Text('Assigned Seat & Shift Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryIndigo)),
+                    const SizedBox(height: 8),
+
+                    // Shift Dropdown
+                    shifts.isEmpty
+                        ? const SizedBox(height: 20, child: Center(child: CircularProgressIndicator()))
+                        : DropdownButtonFormField<int>(
+                            value: selectedShiftId,
+                            decoration: const InputDecoration(labelText: 'Assigned Shift', border: OutlineInputBorder(), prefixIcon: Icon(Icons.schedule_rounded)),
+                            items: shifts.map<DropdownMenuItem<int>>((sh) {
+                              return DropdownMenuItem<int>(
+                                value: sh['id'],
+                                child: Text('${sh['name']} (${sh['start_time']} - ${sh['end_time']})'),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null && val != selectedShiftId) {
+                                fetchSeatsForSelectedShift(val);
+                              }
+                            },
+                          ),
+                    const SizedBox(height: 10),
+
+                    // Seat Dropdown
+                    isLoadingSeats
+                        ? const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator()))
+                        : DropdownButtonFormField<int>(
+                            value: selectedSeatId,
+                            decoration: const InputDecoration(labelText: 'Assigned Seat Desk', border: OutlineInputBorder(), prefixIcon: Icon(Icons.event_seat_rounded)),
+                            items: seatOptions.map<DropdownMenuItem<int>>((st) {
+                              final isCurrent = st['status'] == 'CURRENT';
+                              final isOccupied = st['status'] == 'OCCUPIED';
+                              final label = isCurrent
+                                  ? 'Desk ${st['seat_number']} — CURRENT'
+                                  : (isOccupied ? 'Desk ${st['seat_number']} — OCCUPIED (${st['occupant_name'] ?? 'Student'})' : 'Desk ${st['seat_number']} — AVAILABLE');
+                              return DropdownMenuItem<int>(
+                                value: st['id'],
+                                enabled: !isOccupied,
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    color: isOccupied ? Colors.grey : (isCurrent ? AppColors.primaryIndigo : Colors.black87),
+                                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setModalState(() => selectedSeatId = val);
+                              }
+                            },
+                          ),
+                    const SizedBox(height: 18),
+
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryIndigo,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () async {
+                        final finalPrep = selectedPrepOpt == 'Other' ? customPrepController.text.trim() : selectedPrepOpt;
+
+                        // Check if seat desk is changing
+                        Map<String, dynamic>? selectedSeatObj;
+                        if (selectedSeatId != null) {
+                          selectedSeatObj = seatOptions.firstWhere((st) => st['id'] == selectedSeatId, orElse: () => null);
+                        }
+                        final newSeatNo = selectedSeatObj != null ? selectedSeatObj['seat_number'].toString() : null;
+
+                        bool shouldConfirm = false;
+                        if (newSeatNo != null && newSeatNo != initialSeatNo && initialSeatNo != 'Unassigned') {
+                          shouldConfirm = true;
+                        }
+
+                        if (shouldConfirm) {
+                          final confirm = await showDialog<bool>(
+                            context: ctx,
+                            builder: (dialogCtx) => AlertDialog(
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+                                  SizedBox(width: 8),
+                                  Text('Confirm Seat Change'),
+                                ],
+                              ),
+                              content: Text('Reassign seat for "$initialStudentName" from Desk $initialSeatNo to Desk $newSeatNo?'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: const Text('CANCEL')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryIndigo),
+                                  onPressed: () => Navigator.pop(dialogCtx, true),
+                                  child: const Text('CONFIRM', style: TextStyle(color: Colors.white)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm != true) return;
+                        }
+
+                        final res = await ApiService.updateStudent(
+                          studentId: studentId,
+                          name: nameController.text.trim(),
+                          phone: phoneController.text.trim(),
+                          email: emailController.text.trim(),
+                          fatherName: fatherController.text.trim(),
+                          address: addressController.text.trim(),
+                          emergencyContact: emergencyController.text.trim(),
+                          preparationFor: finalPrep,
+                          shiftId: selectedShiftId,
+                          seatId: selectedSeatId,
+                        );
+
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(res['message'] ?? 'Updated student profile'),
+                              backgroundColor: res['success'] == true ? Colors.green : Colors.redAccent,
+                            ),
+                          );
+                          _fetchActiveStudents();
+                        }
+                      },
+                      child: const Text('SAVE CHANGES', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -590,15 +866,22 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Single
                                           children: [
                                             IconButton(
                                               constraints: const BoxConstraints(),
-                                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                                              icon: const Icon(Icons.info_outline_rounded, color: AppColors.primaryIndigo, size: 22),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                                              icon: const Icon(Icons.edit_outlined, color: AppColors.primaryIndigo, size: 20),
+                                              onPressed: () => _showEditStudentModal(s),
+                                              tooltip: 'Edit Student',
+                                            ),
+                                            IconButton(
+                                              constraints: const BoxConstraints(),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                                              icon: const Icon(Icons.info_outline_rounded, color: AppColors.primaryIndigo, size: 20),
                                               onPressed: () => _showStudentDetailsModal(s),
                                               tooltip: 'View Profile',
                                             ),
                                             IconButton(
                                               constraints: const BoxConstraints(),
-                                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.orangeAccent, size: 22),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.orangeAccent, size: 20),
                                               onPressed: () => _confirmSoftDeleteStudent(s),
                                               tooltip: 'Move to Recycle Bin',
                                             ),

@@ -18,11 +18,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _emergencyController = TextEditingController();
   final _idNoController = TextEditingController();
+  final _otherPreparationController = TextEditingController();
 
   List<dynamic> _shifts = [];
   int _selectedShiftId = 1;
   String _selectedIdType = 'Aadhaar Card';
+  String _selectedPreparation = 'RAS';
   bool _isLoadingShifts = true;
+
+  final List<String> _preparationOptions = [
+    'RAS',
+    'REET',
+    'SSC',
+    'UPSC',
+    'CET',
+    'Banking',
+    'Railway',
+    'NEET',
+    'JEE',
+    'Other',
+  ];
 
   @override
   void initState() {
@@ -54,6 +69,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    final String preparationFor = _selectedPreparation == 'Other'
+        ? _otherPreparationController.text.trim()
+        : _selectedPreparation;
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.register(
       name: name,
@@ -64,6 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       emergencyContact: _emergencyController.text.trim(),
       idProofType: _selectedIdType,
       idProofNo: _idNoController.text.trim(),
+      preparationFor: preparationFor,
     );
 
     if (success) {
@@ -158,6 +178,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
+              const SizedBox(height: 14),
+
+              // Preparation / Course Field
+              DropdownButtonFormField<String>(
+                value: _selectedPreparation,
+                decoration: const InputDecoration(
+                  labelText: 'What are you preparing for? *',
+                  prefixIcon: Icon(Icons.school_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: _preparationOptions.map((opt) {
+                  return DropdownMenuItem<String>(
+                    value: opt,
+                    child: Text(opt),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedPreparation = val);
+                  }
+                },
+              ),
+              if (_selectedPreparation == 'Other') ...[
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _otherPreparationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Please specify course/exam *',
+                    prefixIcon: Icon(Icons.edit_note_rounded),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
 
               // Shift Dropdown

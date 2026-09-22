@@ -46,6 +46,51 @@ try {
     die("Database Connection Error: " . $e->getMessage());
 }
 
+function verify_production_db_identity($pdo) {
+    if (defined('ALLOW_RECOVERY_MODE') && ALLOW_RECOVERY_MODE === true) {
+        return true;
+    }
+    if (!defined('APP_ENV') || APP_ENV !== 'production') {
+        return true;
+    }
+
+    $identity_valid = false;
+    try {
+        $stmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'system_identity'");
+        $stmt->execute();
+        $val = $stmt->fetchColumn();
+        if ($val === PRODUCTION_IDENTITY_MARKER) {
+            $identity_valid = true;
+        }
+    } catch (Exception $e) {
+        $identity_valid = false;
+    }
+
+    $is_fresh_pattern = false;
+    try {
+        $u_cnt = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        $st_cnt = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn();
+        $se_cnt = (int)$pdo->query("SELECT COUNT(*) FROM seats")->fetchColumn();
+        if ($u_cnt <= 1 && $st_cnt == 0 && $se_cnt == 40) {
+            $is_fresh_pattern = true;
+        }
+    } catch (Exception $e) {
+        $is_fresh_pattern = true;
+    }
+
+    if (!$identity_valid || $is_fresh_pattern) {
+        http_response_code(503);
+        header('Content-Type: application/json');
+        die(json_encode([
+            'success' => false,
+            'error' => 'Production database identity mismatch. Service temporarily unavailable.',
+            'db_path' => DB_PATH
+        ]));
+    }
+
+    return true;
+}
+
 function get_db_identity_summary($pdo) {
     $db_file = DB_PATH;
     $exists = file_exists($db_file);
@@ -56,6 +101,7 @@ function get_db_identity_summary($pdo) {
     $active_students = 0;
     $allocations_count = 0;
     $schema_ver = 0;
+    $system_identity = null;
 
     if ($exists) {
         try {
@@ -64,6 +110,10 @@ function get_db_identity_summary($pdo) {
             $active_students = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND (is_deleted IS NULL OR is_deleted = 0)")->fetchColumn();
             $allocations_count = (int)$pdo->query("SELECT COUNT(*) FROM allocations WHERE status = 'active'")->fetchColumn();
             $schema_ver = (int)$pdo->query("SELECT MAX(version) FROM schema_migrations")->fetchColumn();
+            $stmt = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'system_identity'");
+            if ($stmt) {
+                $system_identity = $stmt->fetchColumn() ?: null;
+            }
         } catch (Exception $e) {}
     }
 
@@ -73,6 +123,7 @@ function get_db_identity_summary($pdo) {
         'file_size_bytes' => $size,
         'file_size_formatted' => round($size / 1024, 2) . " KB",
         'schema_version' => $schema_ver,
+        'system_identity' => $system_identity,
         'users_count' => $users_count,
         'students_count' => $students_count,
         'active_students' => $active_students,
@@ -329,6 +380,7 @@ function init_database($pdo) {
     $pdo->exec("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('app_name', 'Self Study Library')");
     $pdo->exec("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('app_logo_url', '')");
     $pdo->exec("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('app_tagline', 'Quiet Environment & High-Speed Wi-Fi')");
+    $pdo->exec("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('system_identity', '" . PRODUCTION_IDENTITY_MARKER . "')");
 
     // HIGH PERFORMANCE INDEXES FOR 100+ CONCURRENT USERS
     try {
@@ -382,7 +434,8 @@ function init_database($pdo) {
         'father_name' => 'TEXT',
         'address' => 'TEXT',
         'is_deleted' => 'INTEGER DEFAULT 0',
-        'deleted_at' => 'DATETIME'
+        'deleted_at' => 'DATETIME',
+        'preparation_for' => 'TEXT'
     ];
     foreach ($alter_cols as $c_name => $c_type) {
         try { $pdo->exec("ALTER TABLE users ADD COLUMN $c_name $c_type"); } catch (Exception $e) {}
@@ -459,6 +512,24 @@ function run_migrations($pdo) {
                         $pdo->exec("UPDATE users SET is_deleted = 0 WHERE is_deleted IS NULL");
                     } catch (Exception $e) {}
                 }
+            ],
+            5 => [
+                'name' => 'add_preparation_for_column',
+                'sql' => function($pdo) {
+                    try {
+                        $pdo->exec("ALTER TABLE users ADD COLUMN preparation_for TEXT");
+                    } catch (Exception $e) {}
+                }
+            ],
+            6 => [
+                'name' => 'add_production_system_identity',
+                'sql' => function($pdo) {
+                    try {
+                        $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (setting_key TEXT PRIMARY KEY, setting_value TEXT)");
+                        $stmt = $pdo->prepare("INSERT OR IGNORE INTO system_settings (setting_key, setting_value) VALUES ('system_identity', ?)");
+                        $stmt->execute([PRODUCTION_IDENTITY_MARKER]);
+                    } catch (Exception $e) {}
+                }
             ]
         ];
 
@@ -472,29 +543,12 @@ function run_migrations($pdo) {
     } catch (Exception $e) {}
 }
 
-// Check if database is fresh/empty
-$is_fresh_db = false;
-try {
-    $user_cnt = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-    if ($user_cnt == 0) $is_fresh_db = true;
-} catch (Exception $e) {
-    $is_fresh_db = true;
-}
-
 if (defined('APP_ENV') && APP_ENV === 'production') {
-    if ($is_fresh_db) {
-        http_response_code(503);
-        header('Content-Type: application/json');
-        die(json_encode([
-            'success' => false,
-            'error' => 'CRITICAL PRODUCTION DATABASE ERROR: Production database ' . $db_file . ' is uninitialized or empty. Silent fresh database seeding is disabled in production to protect data.',
-            'db_path' => $db_file
-        ]));
-    }
-    // In production with existing data, run non-destructive schema migrations only
+    // Permanent Production Guard: Never call init_database() in production.
+    verify_production_db_identity($pdo);
     run_migrations($pdo);
 } else {
-    // In development mode, allow fresh initialization and non-destructive migrations
+    // Development mode allows fresh initialization and migrations.
     init_database($pdo);
     run_migrations($pdo);
 }

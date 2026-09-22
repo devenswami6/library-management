@@ -87,6 +87,7 @@ try {
                     'phone' => $user['phone'],
                     'role' => $user['role'],
                     'status' => $user['status'],
+                    'preparation_for' => $user['preparation_for'] ?? 'Not specified',
                     'seat_number' => $seat_info,
                     'shift' => $shift_info
                 ]
@@ -105,6 +106,7 @@ try {
         $emergency_contact = trim($_POST['emergency_contact'] ?? '');
         $id_proof_type = trim($_POST['id_proof_type'] ?? 'Aadhaar Card');
         $id_proof_no = trim($_POST['id_proof_no'] ?? '');
+        $preparation_for = trim($_POST['preparation_for'] ?? '');
 
         if (empty($name) || empty($email) || empty($phone) || empty($password)) {
             echo json_encode(['success' => false, 'message' => 'All required fields must be filled.']);
@@ -121,10 +123,10 @@ try {
 
         $hashed = password_hash($password, PASSWORD_DEFAULT);
         $stmt_insert = $pdo->prepare("
-            INSERT INTO users (name, email, phone, password, role, emergency_contact, id_proof_type, id_proof_no, status)
-            VALUES (?, ?, ?, ?, 'student', ?, ?, ?, 'pending')
+            INSERT INTO users (name, email, phone, password, role, emergency_contact, id_proof_type, id_proof_no, preparation_for, status)
+            VALUES (?, ?, ?, ?, 'student', ?, ?, ?, ?, 'pending')
         ");
-        $stmt_insert->execute([$name, $email, $phone, $hashed, $emergency_contact, $id_proof_type, $id_proof_no]);
+        $stmt_insert->execute([$name, $email, $phone, $hashed, $emergency_contact, $id_proof_type, $id_proof_no, $preparation_for]);
         $user_id = $pdo->lastInsertId();
 
         // Create initial pending allocation request

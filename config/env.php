@@ -21,6 +21,10 @@ if (!defined('ALLOW_DB_RESET')) {
     define('ALLOW_DB_RESET', getenv('ALLOW_DB_RESET') === 'true');
 }
 
+if (!defined('PRODUCTION_IDENTITY_MARKER')) {
+    define('PRODUCTION_IDENTITY_MARKER', 'PRODUCTION_STUDYSPACE_AUTHORITATIVE');
+}
+
 if (!class_exists('ApiConfig')) {
     class ApiConfig {
         public static $baseUrl = 'https://library-management-hmwx.onrender.com';

@@ -7,6 +7,7 @@ class UserModel {
   final String status; // 'active' or 'pending'
   final String? seatNumber;
   final String? shiftName;
+  final String? preparationFor;
 
   UserModel({
     required this.id,
@@ -17,6 +18,7 @@ class UserModel {
     required this.status,
     this.seatNumber,
     this.shiftName,
+    this.preparationFor,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class UserModel {
       status: json['status'] ?? 'pending',
       seatNumber: json['seat_number'],
       shiftName: shift,
+      preparationFor: json['preparation_for'],
     );
   }
 
@@ -47,6 +50,7 @@ class UserModel {
       'status': status,
       'seat_number': seatNumber,
       'shift_name': shiftName,
+      'preparation_for': preparationFor,
     };
   }
 }
