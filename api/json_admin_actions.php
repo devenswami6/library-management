@@ -723,8 +723,8 @@ try {
         exit();
 
     } elseif ($action === 'get_db_fingerprint') {
-        $req_role = strtolower(trim($_REQUEST['user_role'] ?? ($_SESSION['user_role'] ?? '')));
-        $req_id = (int)($_REQUEST['user_id'] ?? ($_SESSION['user_id'] ?? 0));
+        $req_role = strtolower(trim($_GET['user_role'] ?? ($_POST['user_role'] ?? ($_SESSION['user_role'] ?? ''))));
+        $req_id = (int)($_GET['user_id'] ?? ($_POST['user_id'] ?? ($_SESSION['user_id'] ?? 0)));
         $is_admin_user = ($req_role === 'admin') || ($req_id === 1) || is_admin();
         if (!$is_admin_user && $req_id > 0) {
             try {
