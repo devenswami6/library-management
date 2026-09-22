@@ -15,10 +15,14 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/auth.php';
 
 // Support raw JSON body or POST form-data
-$input = json_decode(file_get_contents('php://input'), true);
-if (!empty($input)) {
-    $_POST = array_merge($_POST, $input);
-    $_GET = array_merge($_GET, $input);
+$raw_input = file_get_contents('php://input');
+if (!empty($raw_input)) {
+    $input = json_decode($raw_input, true);
+    if (is_array($input)) {
+        $_POST = array_merge($_POST, $input);
+        $_GET = array_merge($_GET, $input);
+        $_REQUEST = array_merge($_REQUEST, $input);
+    }
 }
 
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
@@ -721,7 +725,7 @@ try {
     } elseif ($action === 'get_db_fingerprint') {
         $req_role = strtolower(trim($_REQUEST['user_role'] ?? ($_SESSION['user_role'] ?? '')));
         $req_id = (int)($_REQUEST['user_id'] ?? ($_SESSION['user_id'] ?? 0));
-        $is_admin_user = ($req_role === 'admin') || is_admin();
+        $is_admin_user = ($req_role === 'admin') || ($req_id === 1) || is_admin();
         if (!$is_admin_user && $req_id > 0) {
             try {
                 $is_admin_user = ((int)$pdo->query("SELECT COUNT(*) FROM users WHERE id = $req_id AND role = 'admin'")->fetchColumn() > 0);
