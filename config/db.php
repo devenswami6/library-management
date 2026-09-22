@@ -17,7 +17,7 @@ if (defined('APP_ENV') && APP_ENV === 'production') {
             'db_path' => $db_file
         ]));
     }
-    if (!file_exists($db_file)) {
+    if (!file_exists($db_file) && (!defined('ALLOW_RECOVERY_MODE') || ALLOW_RECOVERY_MODE !== true)) {
         http_response_code(503);
         header('Content-Type: application/json');
         die(json_encode([
