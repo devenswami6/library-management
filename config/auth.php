@@ -93,7 +93,47 @@ function get_current_due_date($start_date) {
 }
 
 // Helper to determine fee status badge and next payment target for a student
-function get_student_fee_status($pdo, $allocation_id, $start_date) {
+function get_student_fee_status($pdo, $allocation_id_or_user_id, $start_date = null) {
+    if (!$allocation_id_or_user_id) {
+        return [
+            'status' => 'pending',
+            'label' => 'Pending Allotment',
+            'badge_class' => 'badge-secondary',
+            'due_date' => date('Y-m-d'),
+            'target_month' => date('Y-m'),
+            'target_month_label' => date('F Y'),
+            'is_advance' => false,
+            'last_paid_due' => null
+        ];
+    }
+    
+    $user_id = (int)$allocation_id_or_user_id;
+
+    // Resolve user_id and start_date if an allocation_id was passed
+    $stmt_alloc = $pdo->prepare("SELECT user_id, start_date FROM allocations WHERE id = ?");
+    $stmt_alloc->execute([$allocation_id_or_user_id]);
+    $alloc_row = $stmt_alloc->fetch();
+    
+    if ($alloc_row) {
+        $user_id = (int)$alloc_row['user_id'];
+        if (empty($start_date)) {
+            $start_date = $alloc_row['start_date'];
+        }
+    }
+
+    // Always resolve to student's earliest allocation start date for cycle calculation
+    $stmt_user_start = $pdo->prepare("
+        SELECT COALESCE(MIN(a.start_date), u.created_at, DATE('now'))
+        FROM users u
+        LEFT JOIN allocations a ON u.id = a.user_id AND a.start_date IS NOT NULL AND a.start_date != ''
+        WHERE u.id = ?
+    ");
+    $stmt_user_start->execute([$user_id]);
+    $earliest_start_date = $stmt_user_start->fetchColumn();
+    if (!empty($earliest_start_date)) {
+        $start_date = $earliest_start_date;
+    }
+
     if (!$start_date) {
         $start_date = date('Y-m-d');
     }
@@ -101,9 +141,9 @@ function get_student_fee_status($pdo, $allocation_id, $start_date) {
     $start = new DateTime($start_date);
     $day_of_month = (int)$start->format('d');
     
-    // Fetch all paid records for this allocation
-    $stmt = $pdo->prepare("SELECT month_year, paid_date, due_date, amount, payment_mode, receipt_no FROM fee_payments WHERE allocation_id = ? AND payment_status = 'paid' ORDER BY month_year ASC");
-    $stmt->execute([$allocation_id]);
+    // Fetch all paid records for this student (by user_id) regardless of seat allocation changes
+    $stmt = $pdo->prepare("SELECT month_year, paid_date, due_date, amount, payment_mode, receipt_no FROM fee_payments WHERE user_id = ? AND payment_status = 'paid' ORDER BY month_year ASC");
+    $stmt->execute([$user_id]);
     $paid_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $paid_months = array_column($paid_records, 'month_year');

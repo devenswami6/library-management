@@ -28,7 +28,19 @@ if ($allocation) {
 // Fetch Fee History (Last 12 Months)
 $payments = [];
 if ($user) {
-    $stmt_pay = $pdo->prepare("SELECT * FROM fee_payments WHERE user_id = ? ORDER BY due_date DESC, id DESC LIMIT 12");
+    $stmt_pay = $pdo->prepare("
+        SELECT fp.* 
+        FROM fee_payments fp 
+        WHERE fp.user_id = ? 
+          AND NOT (fp.payment_status != 'paid' AND EXISTS (
+              SELECT 1 FROM fee_payments fp2 
+              WHERE fp2.user_id = fp.user_id 
+                AND fp2.month_year = fp.month_year 
+                AND fp2.payment_status = 'paid'
+          )) 
+        ORDER BY fp.due_date DESC, fp.id DESC 
+        LIMIT 12
+    ");
     $stmt_pay->execute([$user['id']]);
     $payments = $stmt_pay->fetchAll();
 }

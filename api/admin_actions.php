@@ -11,7 +11,12 @@ if ($action === 'approve_student') {
     $user_id = (int)$_POST['user_id'];
     $seat_id = (int)$_POST['seat_id'];
     $shift_id = (int)$_POST['shift_id'];
-    $start_date = trim($_POST['start_date'] ?? date('Y-m-d'));
+
+    // Preserve original start_date for student if re-allotting seat
+    $stmt_orig_start = $pdo->prepare("SELECT start_date FROM allocations WHERE user_id = ? AND start_date IS NOT NULL ORDER BY id ASC LIMIT 1");
+    $stmt_orig_start->execute([$user_id]);
+    $existing_start_date = $stmt_orig_start->fetchColumn();
+    $start_date = !empty($existing_start_date) ? $existing_start_date : trim($_POST['start_date'] ?? date('Y-m-d'));
 
     if (!$user_id || !$seat_id || !$shift_id) {
         header("Location: ../admin_dashboard.php?tab=students&error=" . urlencode("User, Seat and Shift must be selected."));
@@ -53,8 +58,9 @@ if ($action === 'approve_student') {
         $current_month = date('Y-m');
         $due_date = get_current_due_date($start_date);
 
-        $check_fee = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ?");
-        $check_fee->execute([$allocation_id, $current_month]);
+        // Check if student (by user_id) ALREADY has ANY fee payment record for current_month (paid or pending)
+        $check_fee = $pdo->prepare("SELECT id FROM fee_payments WHERE user_id = ? AND month_year = ?");
+        $check_fee->execute([$user_id, $current_month]);
         if (!$check_fee->fetch()) {
             $stmt_fee = $pdo->prepare("INSERT INTO fee_payments (allocation_id, user_id, month_year, amount, due_date, payment_status) VALUES (?, ?, ?, ?, ?, 'pending')");
             $stmt_fee->execute([$allocation_id, $user_id, $current_month, $fee_amount, $due_date]);
@@ -118,10 +124,10 @@ if ($action === 'record_payment') {
     $alloc = $stmt_alloc->fetch();
     $start_date = $alloc['start_date'] ?? date('Y-m-d');
 
-    // Check if submitted month_year is empty OR already paid
+    // Check if submitted month_year is empty OR already paid by this student
     if (!empty($month_year)) {
-        $stmt_check = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ? AND payment_status = 'paid'");
-        $stmt_check->execute([$allocation_id, $month_year]);
+        $stmt_check = $pdo->prepare("SELECT id FROM fee_payments WHERE user_id = ? AND month_year = ? AND payment_status = 'paid'");
+        $stmt_check->execute([$user_id, $month_year]);
         if ($stmt_check->fetch()) {
             // Submitted month is already paid, clear it so fee_status calculates next unpaid cycle
             $month_year = '';
@@ -129,7 +135,7 @@ if ($action === 'record_payment') {
     }
 
     if (empty($month_year)) {
-        $fee_status = get_student_fee_status($pdo, $allocation_id, $start_date);
+        $fee_status = get_student_fee_status($pdo, $user_id, $start_date);
         $month_year = $fee_status['target_month'];
     }
 
@@ -145,8 +151,8 @@ if ($action === 'record_payment') {
     $receipt_no = "REC-" . date('Ymd') . "-" . rand(1000, 9999);
     $today = date('Y-m-d');
 
-    $stmt = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ? AND payment_status != 'paid'");
-    $stmt->execute([$allocation_id, $month_year]);
+    $stmt = $pdo->prepare("SELECT id FROM fee_payments WHERE user_id = ? AND month_year = ? AND payment_status != 'paid'");
+    $stmt->execute([$user_id, $month_year]);
     $payment = $stmt->fetch();
 
     if ($payment) {

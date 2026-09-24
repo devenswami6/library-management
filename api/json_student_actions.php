@@ -261,6 +261,12 @@ try {
             LEFT JOIN seats s ON a.seat_id = s.id
             LEFT JOIN shifts sh ON a.shift_id = sh.id
             WHERE fp.user_id = ?
+              AND NOT (fp.payment_status != 'paid' AND EXISTS (
+                  SELECT 1 FROM fee_payments fp2 
+                  WHERE fp2.user_id = fp.user_id 
+                    AND fp2.month_year = fp.month_year 
+                    AND fp2.payment_status = 'paid'
+              ))
             ORDER BY fp.due_date DESC, fp.id DESC
             LIMIT 12
         ");

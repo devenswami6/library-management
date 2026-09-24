@@ -32,9 +32,15 @@ foreach ($students as $stu) {
     // Fetch fee payments for this student
     $stmt_pay = $pdo->prepare("
         SELECT month_year, amount, payment_status, paid_date, payment_mode, receipt_no, due_date
-        FROM fee_payments
-        WHERE user_id = ?
-        ORDER BY due_date DESC
+        FROM fee_payments fp
+        WHERE fp.user_id = ?
+          AND NOT (fp.payment_status != 'paid' AND EXISTS (
+              SELECT 1 FROM fee_payments fp2 
+              WHERE fp2.user_id = fp.user_id 
+                AND fp2.month_year = fp.month_year 
+                AND fp2.payment_status = 'paid'
+          ))
+        ORDER BY fp.due_date DESC
     ");
     $stmt_pay->execute([$uid]);
     $payments = $stmt_pay->fetchAll(PDO::FETCH_ASSOC);

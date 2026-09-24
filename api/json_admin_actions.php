@@ -122,6 +122,12 @@ try {
                 exit();
             }
 
+            // Fetch original start_date for student if re-allotting seat
+            $stmt_orig_start = $pdo->prepare("SELECT start_date FROM allocations WHERE user_id = ? AND start_date IS NOT NULL ORDER BY id ASC LIMIT 1");
+            $stmt_orig_start->execute([$student_id]);
+            $orig_start_date = $stmt_orig_start->fetchColumn();
+            $alloc_start_date = !empty($orig_start_date) ? $orig_start_date : date('Y-m-d');
+
             // Approve user status
             $pdo->prepare("UPDATE users SET status = 'approved' WHERE id = ?")->execute([$student_id]);
 
@@ -132,9 +138,9 @@ try {
             // Insert new active allocation
             $stmt_alloc = $pdo->prepare("
                 INSERT INTO allocations (user_id, seat_id, shift_id, start_date, status, notes)
-                VALUES (?, ?, ?, DATE('now'), 'active', 'Seat desk allotted by Admin')
+                VALUES (?, ?, ?, ?, 'active', 'Seat desk allotted by Admin')
             ");
-            $stmt_alloc->execute([$student_id, $seat_id, $shift_id]);
+            $stmt_alloc->execute([$student_id, $seat_id, $shift_id, $alloc_start_date]);
 
             // Fetch seat number for response notification
             $stmt_s = $pdo->prepare("SELECT seat_number FROM seats WHERE id = ?");
@@ -244,9 +250,15 @@ try {
             $uid = $stu['user_id'];
             $stmt_pay = $pdo->prepare("
                 SELECT month_year, amount, payment_status, paid_date, payment_mode, receipt_no, due_date
-                FROM fee_payments
-                WHERE user_id = ?
-                ORDER BY due_date DESC
+                FROM fee_payments fp
+                WHERE fp.user_id = ?
+                  AND NOT (fp.payment_status != 'paid' AND EXISTS (
+                      SELECT 1 FROM fee_payments fp2 
+                      WHERE fp2.user_id = fp.user_id 
+                        AND fp2.month_year = fp.month_year 
+                        AND fp2.payment_status = 'paid'
+                  ))
+                ORDER BY fp.due_date DESC
             ");
             $stmt_pay->execute([$uid]);
             $payments = $stmt_pay->fetchAll(PDO::FETCH_ASSOC);
@@ -579,10 +591,10 @@ try {
         $alloc = $stmt_alloc->fetch();
         $start_date = $alloc['start_date'] ?? date('Y-m-d');
 
-        // Check if submitted month_year is empty OR already paid
+        // Check if submitted month_year is empty OR already paid by this student
         if (!empty($month_year)) {
-            $stmt_check = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ? AND payment_status = 'paid'");
-            $stmt_check->execute([$allocation_id, $month_year]);
+            $stmt_check = $pdo->prepare("SELECT id FROM fee_payments WHERE user_id = ? AND month_year = ? AND payment_status = 'paid'");
+            $stmt_check->execute([$user_id, $month_year]);
             if ($stmt_check->fetch()) {
                 // Submitted month is already paid, clear it so fee_status calculates next unpaid cycle
                 $month_year = '';
@@ -590,7 +602,7 @@ try {
         }
 
         if (empty($month_year)) {
-            $fee_status = get_student_fee_status($pdo, $allocation_id, $start_date);
+            $fee_status = get_student_fee_status($pdo, $user_id, $start_date);
             $month_year = $fee_status['target_month'];
         }
 
@@ -606,8 +618,8 @@ try {
         $receipt_no = "REC-" . date('Ymd') . "-" . rand(1000, 9999);
         $today = date('Y-m-d');
 
-        $stmt = $pdo->prepare("SELECT id FROM fee_payments WHERE allocation_id = ? AND month_year = ? AND payment_status != 'paid'");
-        $stmt->execute([$allocation_id, $month_year]);
+        $stmt = $pdo->prepare("SELECT id FROM fee_payments WHERE user_id = ? AND month_year = ? AND payment_status != 'paid'");
+        $stmt->execute([$user_id, $month_year]);
         $existing = $stmt->fetch();
 
         if ($existing) {
@@ -649,6 +661,12 @@ try {
             LEFT JOIN seats s ON a.seat_id = s.id
             LEFT JOIN shifts sh ON a.shift_id = sh.id
             WHERE fp.user_id = ?
+              AND NOT (fp.payment_status != 'paid' AND EXISTS (
+                  SELECT 1 FROM fee_payments fp2 
+                  WHERE fp2.user_id = fp.user_id 
+                    AND fp2.month_year = fp.month_year 
+                    AND fp2.payment_status = 'paid'
+              ))
             ORDER BY fp.due_date DESC, fp.id DESC
             LIMIT 12
         ");
