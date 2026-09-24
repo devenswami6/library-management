@@ -138,96 +138,106 @@ function get_student_fee_status($pdo, $allocation_id_or_user_id, $start_date = n
         $start_date = date('Y-m-d');
     }
     
+    $start = new DateTime($start_date);
+    $day_of_month = (int)$start->format('d');
+    
     // Fetch all paid records for this student (by user_id) regardless of seat allocation changes
     $stmt = $pdo->prepare("SELECT month_year, paid_date, due_date, amount, payment_mode, receipt_no FROM fee_payments WHERE user_id = ? AND payment_status = 'paid' ORDER BY month_year ASC");
     $stmt->execute([$user_id]);
     $paid_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $paid_months = array_column($paid_records, 'month_year');
-
-    // If student has paid records, ensure cycle evaluation starts from the earliest paid month so prior unpaid registration months don't invalidate active paid status
+    $current_month_str = date('Y-m');
+    $is_current_paid = in_array($current_month_str, $paid_months);
+    $latest_paid_month = !empty($paid_months) ? max($paid_months) : null;
+    
+    // Scan up to 48 months starting from registration start date or earliest paid month
+    $scan_start_date = $start_date;
     if (!empty($paid_months)) {
-        $earliest_paid_ym = min($paid_months);
-        $start_ym = date('Y-m', strtotime($start_date));
-        if ($start_ym < $earliest_paid_ym) {
-            $day_part = sprintf("%02d", min(28, (int)date('d', strtotime($start_date))));
-            $start_date = $earliest_paid_ym . '-' . $day_part;
+        $earliest_paid = min($paid_months);
+        if (date('Y-m', strtotime($scan_start_date)) > $earliest_paid) {
+            $scan_start_date = $earliest_paid . '-' . sprintf("%02d", min(28, $day_of_month));
         }
     }
-    
-    $start = new DateTime($start_date);
-    $day_of_month = (int)$start->format('d');
-    
-    // Find the first unpaid month starting from registration month or earliest paid cycle
-    $start_year = (int)$start->format('Y');
-    $start_month = (int)$start->format('m');
-    
-    $curr_dt = new DateTime(sprintf("%04d-%02d-01", $start_year, $start_month));
+
+    $curr_dt = new DateTime(date('Y-m-01', strtotime($scan_start_date)));
     $today = new DateTime();
     $today_str = $today->format('Y-m-d');
     
-    $target_month = null;
-    $target_due_date = null;
+    $first_unpaid_month = null;
+    $first_unpaid_due_date = null;
+    $next_unpaid_after_latest = null;
+    $next_unpaid_after_latest_due = null;
     $last_paid_due_date = null;
-    
-    for ($i = 0; $i < 36; $i++) {
+
+    for ($i = 0; $i < 48; $i++) {
         $m_str = $curr_dt->format('Y-m');
         $days_in_m = (int)$curr_dt->format('t');
         $actual_day = min($day_of_month, $days_in_m);
         $due_str = sprintf("%s-%02d", $m_str, $actual_day);
-        
+
         if (in_array($m_str, $paid_months)) {
             $last_paid_due_date = $due_str;
         } else {
-            $target_month = $m_str;
-            $target_due_date = $due_str;
-            break;
+            if (!$first_unpaid_month) {
+                $first_unpaid_month = $m_str;
+                $first_unpaid_due_date = $due_str;
+            }
+            if ($latest_paid_month && $m_str > $latest_paid_month && !$next_unpaid_after_latest) {
+                $next_unpaid_after_latest = $m_str;
+                $next_unpaid_after_latest_due = $due_str;
+            }
         }
         $curr_dt->modify('+1 month');
     }
-    
-    if (!$target_month) {
-        $target_month = date('Y-m');
-        $target_due_date = date('Y-m-d');
+
+    if (!$first_unpaid_month) {
+        $first_unpaid_month = date('Y-m');
+        $first_unpaid_due_date = date('Y-m-d');
     }
-    
-    $current_month_str = date('Y-m');
-    $is_current_paid = in_array($current_month_str, $paid_months);
-    
-    // If today is past last paid date or current month is paid, determine status
-    if ($is_current_paid || ($last_paid_due_date && $today_str < $target_due_date)) {
+
+    // Determine status:
+    // If the student has paid for the current month OR has paid for any future month (latest_paid_month >= current_month_str):
+    if ($is_current_paid || ($latest_paid_month && $latest_paid_month >= $current_month_str)) {
+        $target_m = $next_unpaid_after_latest ?: $first_unpaid_month;
+        $target_due = $next_unpaid_after_latest_due ?: $first_unpaid_due_date;
+
         return [
             'status' => 'paid',
-            'label' => 'Paid (Valid till ' . date('d M Y', strtotime($target_due_date)) . ')',
+            'label' => 'Paid (Valid till ' . date('d M Y', strtotime($target_due)) . ')',
             'badge_class' => 'badge-success',
-            'due_date' => $target_due_date,
-            'target_month' => $target_month,
-            'target_month_label' => date('F Y', strtotime($target_month . '-01')) . ' (Advance)',
+            'due_date' => $target_due,
+            'target_month' => $target_m,
+            'target_month_label' => date('F Y', strtotime($target_m . '-01')) . ' (Advance)',
             'is_advance' => true,
             'last_paid_due' => $last_paid_due_date
         ];
     } else {
-        if ($today_str > $target_due_date) {
-            $days_overdue = (int)floor((strtotime($today_str) - strtotime($target_due_date)) / 86400);
+        // If current month is unpaid and no future advance payment covers it:
+        $target_m = $first_unpaid_month;
+        $target_due = $first_unpaid_due_date;
+
+        if ($today_str > $target_due) {
+            $days_overdue = (int)floor((strtotime($today_str) - strtotime($target_due)) / 86400);
             $days_overdue = max(1, $days_overdue);
             return [
                 'status' => 'overdue',
                 'label' => "Overdue ($days_overdue days)",
                 'badge_class' => 'badge-danger',
-                'due_date' => $target_due_date,
-                'target_month' => $target_month,
-                'target_month_label' => date('F Y', strtotime($target_month . '-01')),
+                'due_date' => $target_due,
+                'target_month' => $target_m,
+                'target_month_label' => date('F Y', strtotime($target_m . '-01')),
                 'is_advance' => false,
                 'last_paid_due' => $last_paid_due_date
             ];
         } else {
             return [
                 'status' => 'pending',
-                'label' => 'Due Soon (' . date('d M Y', strtotime($target_due_date)) . ')',
+                'label' => 'Due Soon (' . date('d M Y', strtotime($target_due)) . ')',
                 'badge_class' => 'badge-warning',
-                'due_date' => $target_due_date,
-                'target_month' => $target_month,
-                'target_month_label' => date('F Y', strtotime($target_month . '-01')),
+                'due_date' => $target_due,
+                'target_month' => $target_m,
+                'target_month_label' => date('F Y', strtotime($target_m . '-01')),
                 'is_advance' => false,
                 'last_paid_due' => $last_paid_due_date
             ];
