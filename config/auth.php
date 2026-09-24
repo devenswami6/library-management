@@ -138,17 +138,27 @@ function get_student_fee_status($pdo, $allocation_id_or_user_id, $start_date = n
         $start_date = date('Y-m-d');
     }
     
-    $start = new DateTime($start_date);
-    $day_of_month = (int)$start->format('d');
-    
     // Fetch all paid records for this student (by user_id) regardless of seat allocation changes
     $stmt = $pdo->prepare("SELECT month_year, paid_date, due_date, amount, payment_mode, receipt_no FROM fee_payments WHERE user_id = ? AND payment_status = 'paid' ORDER BY month_year ASC");
     $stmt->execute([$user_id]);
     $paid_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $paid_months = array_column($paid_records, 'month_year');
+
+    // If student has paid records, ensure cycle evaluation starts from the earliest paid month so prior unpaid registration months don't invalidate active paid status
+    if (!empty($paid_months)) {
+        $earliest_paid_ym = min($paid_months);
+        $start_ym = date('Y-m', strtotime($start_date));
+        if ($start_ym < $earliest_paid_ym) {
+            $day_part = sprintf("%02d", min(28, (int)date('d', strtotime($start_date))));
+            $start_date = $earliest_paid_ym . '-' . $day_part;
+        }
+    }
     
-    // Find the first unpaid month starting from registration month or 3 months prior
+    $start = new DateTime($start_date);
+    $day_of_month = (int)$start->format('d');
+    
+    // Find the first unpaid month starting from registration month or earliest paid cycle
     $start_year = (int)$start->format('Y');
     $start_month = (int)$start->format('m');
     
